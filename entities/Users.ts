@@ -8,6 +8,54 @@ export class Users {
     private readonly resolve = new Resolve(this.api)
     public constructor(private readonly api: API) {}
 
+
+    /**
+     * Gets a user's followers.
+     */
+    public following = async (userResolvable: string | number, limit?: number) => {
+        const userID = await this.resolve.get(userResolvable)
+        let response = await this.api.getV2(`/users/${userID}/followings`, {limit: 50, offset: 0}) as any
+        const followers: SoundcloudUser[] = []
+        let nextHref = response.next_href
+        
+        while (nextHref && (!limit || followers.length < limit)) {
+            followers.push(...response.collection)
+            const url = new URL(nextHref)
+            const params = {}
+            url.searchParams.forEach((value, key) => (params[key] = value))
+            response = await this.api.getURL(url.origin + url.pathname, params)
+            nextHref = response.next_href
+        }
+        
+        return followers
+    }
+
+    /**
+     * Gets all the albums by the user using Soundcloud v2 API.
+     */
+    public albums = async (userResolvable: string | number) => {
+        const userID = await this.resolve.get(userResolvable)
+        let params = {
+            limit: 10,
+            offset: 0
+        }
+        
+        const response = await this.api.getV2(`/users/${userID}/albums`, params) as SoundcloudTrackSearch
+        let nextHref = response.next_href
+        
+        while (nextHref) {
+            const url = new URL(nextHref)
+            const params = {}
+            url.searchParams.forEach((value, key) => (params[key] = value))
+            const nextPage = await this.api.getURL(url.origin + url.pathname, params) as SoundcloudTrackSearch
+            response.collection.push(...nextPage.collection)
+            nextHref = nextPage.next_href
+        }
+        
+        return response.collection as SoundcloudTrack[]
+    }
+
+
     /**
      * Searches for users using the v2 API.
      */
