@@ -363,7 +363,7 @@ var Util = /** @class */ (function () {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g;
+                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
                         if (!dest)
                             dest = "./";
                         if (!fs.existsSync(dest))
@@ -498,7 +498,7 @@ var Util = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g;
+                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
                         if (!dest)
                             dest = "./";
                         folder = dest;

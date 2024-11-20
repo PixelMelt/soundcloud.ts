@@ -205,7 +205,7 @@ export class Util {
      * Downloads a track on Soundcloud.
      */
     public downloadTrack = async (trackResolvable: string | SoundcloudTrack, dest?: string) => {
-        const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g
+        const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g
         if (!dest) dest = "./"
         if (!fs.existsSync(dest)) fs.mkdirSync(dest, {recursive: true})
         const track = await this.resolveTrack(trackResolvable)
@@ -280,7 +280,7 @@ export class Util {
      * Downloads a track's song cover.
      */
     public downloadSongCover = async (trackResolvable: string | SoundcloudTrack, dest?: string, noDL?: boolean) => {
-        const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g
+        const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g
         if (!dest) dest = "./"
         const folder = dest
         if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
