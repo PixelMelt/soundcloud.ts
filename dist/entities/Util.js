@@ -359,10 +359,11 @@ var Util = /** @class */ (function () {
          * Downloads a track on Soundcloud.
          */
         this.downloadTrack = function (trackResolvable, dest) { return __awaiter(_this, void 0, void 0, function () {
-            var track, downloadObj, result, arrayBuffer, _a;
+            var disallowedCharactersRegex, track, downloadObj, result, arrayBuffer, _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
+                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g;
                         if (!dest)
                             dest = "./";
                         if (!fs.existsSync(dest))
@@ -380,7 +381,7 @@ var Util = /** @class */ (function () {
                         return [4 /*yield*/, (0, undici_1.request)(downloadObj.redirectUri)];
                     case 4:
                         result = _b.sent();
-                        dest = path.extname(dest) ? dest : path.join(dest, "".concat(track.title.replace(/[\\/:*?\"<>|]/g, ""), ".").concat(result.headers["x-amz-meta-file-type"]));
+                        dest = path.extname(dest) ? dest : path.join(dest, "".concat(track.title.replace(disallowedCharactersRegex, ""), ".").concat(result.headers["x-amz-meta-file-type"]));
                         return [4 /*yield*/, result.body.arrayBuffer()];
                     case 5:
                         arrayBuffer = _b.sent();
@@ -388,9 +389,9 @@ var Util = /** @class */ (function () {
                         return [2 /*return*/, dest];
                     case 6:
                         _a = _b.sent();
-                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(/[\\/:*?\"<>|]/g, ""), dest)];
+                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)];
                     case 7: return [3 /*break*/, 9];
-                    case 8: return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(/[\\/:*?\"<>|]/g, ""), dest)];
+                    case 8: return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)];
                     case 9: return [2 /*return*/];
                 }
             });
@@ -493,10 +494,11 @@ var Util = /** @class */ (function () {
          * Downloads a track's song cover.
          */
         this.downloadSongCover = function (trackResolvable, dest, noDL) { return __awaiter(_this, void 0, void 0, function () {
-            var folder, track, artwork, title, client_id, url, arrayBuffer;
+            var disallowedCharactersRegex, folder, track, artwork, title, client_id, url, arrayBuffer;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g;
                         if (!dest)
                             dest = "./";
                         folder = dest;
@@ -506,7 +508,7 @@ var Util = /** @class */ (function () {
                     case 1:
                         track = _a.sent();
                         artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url).replace(".jpg", ".png").replace("-large", "-t500x500");
-                        title = track.title.replace(/[\\/:*?\"<>|]/g, "");
+                        title = track.title.replace(disallowedCharactersRegex, "");
                         dest = path.extname(dest) ? dest : path.join(folder, "".concat(title, ".png"));
                         return [4 /*yield*/, this.api.getClientId()];
                     case 2:

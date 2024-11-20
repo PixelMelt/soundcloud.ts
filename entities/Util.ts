@@ -205,6 +205,7 @@ export class Util {
      * Downloads a track on Soundcloud.
      */
     public downloadTrack = async (trackResolvable: string | SoundcloudTrack, dest?: string) => {
+        const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g
         if (!dest) dest = "./"
         if (!fs.existsSync(dest)) fs.mkdirSync(dest, {recursive: true})
         const track = await this.resolveTrack(trackResolvable)
@@ -212,15 +213,15 @@ export class Util {
             try {
                 const downloadObj = await this.api.getV2(`/tracks/${track.id}/download`) as any
                 const result = await request(downloadObj.redirectUri)
-                dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(/[\\/:*?\"<>|]/g, "")}.${result.headers["x-amz-meta-file-type"]}`)
+                dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(disallowedCharactersRegex, "")}.${result.headers["x-amz-meta-file-type"]}`)
                 const arrayBuffer = await result.body.arrayBuffer() as any
                 fs.writeFileSync(dest, Buffer.from(arrayBuffer, "binary"))
                 return dest
             } catch {
-                return this.downloadTrackStream(track, track.title.replace(/[\\/:*?\"<>|]/g, ""), dest)
+                return this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)
             }
         } else {
-            return this.downloadTrackStream(track, track.title.replace(/[\\/:*?\"<>|]/g, ""), dest)
+            return this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)
         }
     }
 
@@ -279,12 +280,13 @@ export class Util {
      * Downloads a track's song cover.
      */
     public downloadSongCover = async (trackResolvable: string | SoundcloudTrack, dest?: string, noDL?: boolean) => {
+        const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|]/g
         if (!dest) dest = "./"
         const folder = dest
         if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
         const track = await this.resolveTrack(trackResolvable)
         const artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url).replace(".jpg", ".png").replace("-large", "-t500x500")
-        const title = track.title.replace(/[\\/:*?\"<>|]/g, "")
+        const title = track.title.replace(disallowedCharactersRegex, "")
         dest = path.extname(dest) ? dest : path.join(folder, `${title}.png`)
         const client_id = await this.api.getClientId()
         const url = `${artwork}?client_id=${client_id}`
