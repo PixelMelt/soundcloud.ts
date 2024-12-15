@@ -43,38 +43,16 @@ var Resolve = /** @class */ (function () {
         var _this = this;
         this.api = api;
         /**
-         * Gets the ID from the html source.
-         */
-        this.getAlt = function (resolvable) { return __awaiter(_this, void 0, void 0, function () {
-            var id, html, data;
-            var _a, _b, _c, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
-                    case 0:
-                        if (!String(resolvable).match(/\d{8,}/) && !String(resolvable).includes("soundcloud")) {
-                            resolvable = "https://soundcloud.com/".concat(resolvable);
-                        }
-                        id = resolvable;
-                        if (!String(resolvable).includes("soundcloud")) return [3 /*break*/, 2];
-                        return [4 /*yield*/, (0, undici_1.request)(String(resolvable), { headers: this.api.headers }).then(function (r) { return r.body.text(); })];
-                    case 1:
-                        html = _e.sent();
-                        data = JSON.parse((_a = html.match(/(\[{"id")(.*?)(?=\);)/)) === null || _a === void 0 ? void 0 : _a[0]);
-                        id = ((_d = (_c = (_b = data[data.length - 1]) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.id) ? data[data.length - 1].data[0].id : data[data.length - 2].data[0].id;
-                        _e.label = 2;
-                    case 2: return [2 /*return*/, id];
-                }
-            });
-        }); };
-        /**
          * Gets the ID of a user/playlist/track from the Soundcloud URL using the v2 API.
          */
         this.get = function (resolvable, full) { return __awaiter(_this, void 0, void 0, function () {
-            var id, resolved;
+            var isNumericId, id, resolved;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (!String(resolvable).match(/\d{8,}/) && !String(resolvable).includes("soundcloud")) {
+                        isNumericId = String(resolvable).match(/^\d+$/);
+                        // If it's not a pure numeric ID and doesn't include soundcloud URL, prepend the soundcloud URL
+                        if (!isNumericId && !String(resolvable).includes("soundcloud")) {
                             resolvable = "https://soundcloud.com/".concat(resolvable);
                         }
                         id = resolvable;
@@ -86,6 +64,31 @@ var Resolve = /** @class */ (function () {
                             return [2 /*return*/, resolved];
                         id = resolved.id;
                         _a.label = 2;
+                    case 2: return [2 /*return*/, id];
+                }
+            });
+        }); };
+        /**
+         * Gets the ID from the html source.
+         */
+        this.getAlt = function (resolvable) { return __awaiter(_this, void 0, void 0, function () {
+            var isNumericId, id, html, data;
+            var _a, _b, _c, _d;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
+                    case 0:
+                        isNumericId = String(resolvable).match(/^\d+$/);
+                        if (!isNumericId && !String(resolvable).includes("soundcloud")) {
+                            resolvable = "https://soundcloud.com/".concat(resolvable);
+                        }
+                        id = resolvable;
+                        if (!String(resolvable).includes("soundcloud")) return [3 /*break*/, 2];
+                        return [4 /*yield*/, (0, undici_1.request)(String(resolvable), { headers: this.api.headers }).then(function (r) { return r.body.text(); })];
+                    case 1:
+                        html = _e.sent();
+                        data = JSON.parse((_a = html.match(/($${"id")(.*?)(?=$$;)/)) === null || _a === void 0 ? void 0 : _a[0]);
+                        id = ((_d = (_c = (_b = data[data.length - 1]) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.id) ? data[data.length - 1].data[0].id : data[data.length - 2].data[0].id;
+                        _e.label = 2;
                     case 2: return [2 /*return*/, id];
                 }
             });
