@@ -211,11 +211,18 @@ export class Util {
         if (!dest) dest = "./"
         if (!fs.existsSync(dest)) fs.mkdirSync(dest, {recursive: true})
         const track = await this.resolveTrack(trackResolvable)
+    
+        // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
+        // what the fuck soundcloud users
+
+        track.title = sanitize(track.title)
+        if(track.title.length > 50) track.title = track.title.slice(0, 50) + "..."
+    
         if (track.downloadable === true) {
             try {
-                track.title = sanitize(track.title)
                 const downloadObj = await this.api.getV2(`/tracks/${track.id}/download`) as any
                 const result = await request(downloadObj.redirectUri)
+
                 dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(disallowedCharactersRegex, "")}.${result.headers["x-amz-meta-file-type"]}`)
                 const arrayBuffer = await result.body.arrayBuffer() as any
                 fs.writeFileSync(dest, Buffer.from(arrayBuffer, "binary"))

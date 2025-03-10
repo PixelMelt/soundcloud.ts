@@ -369,14 +369,21 @@ var Util = /** @class */ (function () {
                             dest = "./";
                         if (!fs.existsSync(dest))
                             fs.mkdirSync(dest, { recursive: true });
-                        return [4 /*yield*/, this.resolveTrack(trackResolvable)];
+                        return [4 /*yield*/, this.resolveTrack(trackResolvable)
+                            // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
+                            // what the fuck soundcloud users
+                        ];
                     case 1:
                         track = _b.sent();
+                        // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
+                        // what the fuck soundcloud users
+                        track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
+                        if (track.title.length > 50)
+                            track.title = track.title.slice(0, 50) + "...";
                         if (!(track.downloadable === true)) return [3 /*break*/, 8];
                         _b.label = 2;
                     case 2:
                         _b.trys.push([2, 6, , 7]);
-                        track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
                         return [4 /*yield*/, this.api.getV2("/tracks/".concat(track.id, "/download"))];
                     case 3:
                         downloadObj = _b.sent();
