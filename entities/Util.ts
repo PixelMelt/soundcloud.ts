@@ -6,6 +6,8 @@ import {Tracks, Users, Playlists} from "./index"
 import {request} from "undici"
 import {Readable} from "stream"
 import {spawnSync} from "child_process"
+import { sanitize } from "sanitize-filename-ts";
+
 
 let temp = 0
 const FFMPEG = {checked: false, path: ""}
@@ -211,6 +213,7 @@ export class Util {
         const track = await this.resolveTrack(trackResolvable)
         if (track.downloadable === true) {
             try {
+                track.title = sanitize(track.title)
                 const downloadObj = await this.api.getV2(`/tracks/${track.id}/download`) as any
                 const result = await request(downloadObj.redirectUri)
                 dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(disallowedCharactersRegex, "")}.${result.headers["x-amz-meta-file-type"]}`)

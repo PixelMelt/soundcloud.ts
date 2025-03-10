@@ -43,6 +43,7 @@ var index_1 = require("./index");
 var undici_1 = require("undici");
 var stream_1 = require("stream");
 var child_process_1 = require("child_process");
+var sanitize_filename_ts_1 = require("sanitize-filename-ts");
 var temp = 0;
 var FFMPEG = { checked: false, path: "" };
 var SOURCES = [
@@ -375,6 +376,7 @@ var Util = /** @class */ (function () {
                         _b.label = 2;
                     case 2:
                         _b.trys.push([2, 6, , 7]);
+                        track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
                         return [4 /*yield*/, this.api.getV2("/tracks/".concat(track.id, "/download"))];
                     case 3:
                         downloadObj = _b.sent();
