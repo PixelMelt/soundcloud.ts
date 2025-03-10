@@ -182,6 +182,10 @@ export class Util {
     private readonly downloadTrackStream = async (trackResolvable: string | SoundcloudTrack, title: string, dest: string) => {
         let result: {stream: NodeJS.ReadableStream, type: string}
         const track = await this.resolveTrack(trackResolvable)
+
+        title = sanitize(title)
+        if(title.length > 50) title = title.slice(0, 50) + "..."
+
         const transcodings = await this.sortTranscodings(track, "progressive")
         if (!transcodings.length) {
             result = await this.m3uReadableStream(trackResolvable)
@@ -212,16 +216,16 @@ export class Util {
         if (!fs.existsSync(dest)) fs.mkdirSync(dest, {recursive: true})
         const track = await this.resolveTrack(trackResolvable)
     
-        // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
-        // what the fuck soundcloud users
-
-        track.title = sanitize(track.title)
-        if(track.title.length > 50) track.title = track.title.slice(0, 50) + "..."
-    
         if (track.downloadable === true) {
             try {
                 const downloadObj = await this.api.getV2(`/tracks/${track.id}/download`) as any
                 const result = await request(downloadObj.redirectUri)
+
+                // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
+                // what the fuck soundcloud users
+
+                track.title = sanitize(track.title)
+                if(track.title.length > 50) track.title = track.title.slice(0, 50) + "..."
 
                 dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(disallowedCharactersRegex, "")}.${result.headers["x-amz-meta-file-type"]}`)
                 const arrayBuffer = await result.body.arrayBuffer() as any
