@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -38,7 +38,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Playlists = void 0;
 var index_1 = require("./index");
-var undici_1 = require("undici");
 var Playlists = /** @class */ (function () {
     function Playlists(api) {
         var _this = this;
@@ -106,7 +105,7 @@ var Playlists = /** @class */ (function () {
                 switch (_b.label) {
                     case 0:
                         headers = this.api.headers;
-                        return [4 /*yield*/, (0, undici_1.request)("https://soundcloud.com/search/sets?q=".concat(query), { headers: headers }).then(function (r) { return r.body.text(); })];
+                        return [4 /*yield*/, fetch("https://soundcloud.com/search/sets?q=".concat(query), { headers: headers }).then(function (r) { return r.text(); })];
                     case 1:
                         html = _b.sent();
                         urls = (_a = html.match(/(?<=<li><h2><a href=")(.*?)(?=">)/gm)) === null || _a === void 0 ? void 0 : _a.map(function (u) { return "https://soundcloud.com".concat(u); });
@@ -117,7 +116,7 @@ var Playlists = /** @class */ (function () {
                         _b.label = 2;
                     case 2:
                         if (!(i < urls.length)) return [3 /*break*/, 5];
-                        return [4 /*yield*/, (0, undici_1.request)(urls[i], { headers: headers }).then(function (r) { return r.body.text(); })];
+                        return [4 /*yield*/, fetch(urls[i], { headers: headers }).then(function (r) { return r.text(); })];
                     case 3:
                         songHTML = _b.sent();
                         json = JSON.parse(songHTML.match(/(\[{)(.*)(?=;)/gm)[0]);
@@ -142,7 +141,7 @@ var Playlists = /** @class */ (function () {
                         if (!url.startsWith("https://soundcloud.com/"))
                             url = "https://soundcloud.com/".concat(url);
                         headers = this.api.headers;
-                        return [4 /*yield*/, (0, undici_1.request)(url, { headers: headers }).then(function (r) { return r.body.text(); })];
+                        return [4 /*yield*/, fetch(url, { headers: headers }).then(function (r) { return r.text(); })];
                     case 1:
                         songHTML = _a.sent();
                         json = JSON.parse(songHTML.match(/(\[{)(.*)(?=;)/gm)[0]);

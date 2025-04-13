@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -39,7 +39,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Users = void 0;
 var url_1 = require("url");
 var index_1 = require("./index");
-var undici_1 = require("undici");
 var Users = /** @class */ (function () {
     function Users(api) {
         var _this = this;
@@ -55,9 +54,12 @@ var Users = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
                     case 1:
                         userID = _a.sent();
-                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/followings"), { limit: 50, offset: 0 })];
+                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/followings"), {
+                                limit: 50,
+                                offset: 0,
+                            })];
                     case 2:
-                        response = _a.sent();
+                        response = (_a.sent());
                         followers = [];
                         nextHref = response.next_href;
                         _loop_1 = function () {
@@ -101,11 +103,11 @@ var Users = /** @class */ (function () {
                         userID = _a.sent();
                         params = {
                             limit: 10,
-                            offset: 0
+                            offset: 0,
                         };
                         return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/albums"), params)];
                     case 2:
-                        response = _a.sent();
+                        response = (_a.sent());
                         nextHref = response.next_href;
                         _loop_2 = function () {
                             var url, params_1, nextPage;
@@ -118,7 +120,7 @@ var Users = /** @class */ (function () {
                                         url.searchParams.forEach(function (value, key) { return (params_1[key] = value); });
                                         return [4 /*yield*/, this_2.api.getURL(url.origin + url.pathname, params_1)];
                                     case 1:
-                                        nextPage = _c.sent();
+                                        nextPage = (_c.sent());
                                         (_b = response.collection).push.apply(_b, nextPage.collection);
                                         nextHref = nextPage.next_href;
                                         return [2 /*return*/];
@@ -180,7 +182,7 @@ var Users = /** @class */ (function () {
                         userID = _a.sent();
                         return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/tracks"))];
                     case 2:
-                        response = _a.sent();
+                        response = (_a.sent());
                         nextHref = response.next_href;
                         _loop_3 = function () {
                             var url, params, nextPage;
@@ -193,7 +195,7 @@ var Users = /** @class */ (function () {
                                         url.searchParams.forEach(function (value, key) { return (params[key] = value); });
                                         return [4 /*yield*/, this_3.api.getURL(url.origin + url.pathname, params)];
                                     case 1:
-                                        nextPage = _c.sent();
+                                        nextPage = (_c.sent());
                                         (_b = response.collection).push.apply(_b, nextPage.collection);
                                         nextHref = nextPage.next_href;
                                         return [2 /*return*/];
@@ -222,9 +224,12 @@ var Users = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
                     case 1:
                         userID = _a.sent();
-                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/likes"), { limit: 50, offset: 0 })];
+                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/likes"), {
+                                limit: 50,
+                                offset: 0,
+                            })];
                     case 2:
-                        response = _a.sent();
+                        response = (_a.sent());
                         tracks = [];
                         nextHref = response.next_href;
                         _loop_4 = function () {
@@ -283,10 +288,11 @@ var Users = /** @class */ (function () {
                 switch (_b.label) {
                     case 0:
                         headers = this.api.headers;
-                        return [4 /*yield*/, (0, undici_1.request)("https://soundcloud.com/search/people?q=".concat(query), { headers: headers }).then(function (r) { return r.body.text(); })];
+                        return [4 /*yield*/, fetch("https://soundcloud.com/search/people?q=".concat(query), { headers: headers }).then(function (r) { return r.text(); })];
                     case 1:
                         html = _b.sent();
-                        urls = (_a = html.match(/(?<=<li><h2><a href=")(.*?)(?=">)/gm)) === null || _a === void 0 ? void 0 : _a.map(function (u) { return "https://soundcloud.com".concat(u); });
+                        urls = (_a = html
+                            .match(/(?<=<li><h2><a href=")(.*?)(?=">)/gm)) === null || _a === void 0 ? void 0 : _a.map(function (u) { return "https://soundcloud.com".concat(u); });
                         if (!urls)
                             return [2 /*return*/, []];
                         scrape = [];
@@ -294,7 +300,7 @@ var Users = /** @class */ (function () {
                         _b.label = 2;
                     case 2:
                         if (!(i < urls.length)) return [3 /*break*/, 5];
-                        return [4 /*yield*/, (0, undici_1.request)(urls[i], { headers: headers }).then(function (r) { return r.body.text(); })];
+                        return [4 /*yield*/, fetch(urls[i], { headers: headers }).then(function (r) { return r.text(); })];
                     case 3:
                         songHTML = _b.sent();
                         json = JSON.parse(songHTML.match(/(\[{)(.*)(?=;)/gm)[0]);
@@ -319,7 +325,7 @@ var Users = /** @class */ (function () {
                         if (!url.startsWith("https://soundcloud.com/"))
                             url = "https://soundcloud.com/".concat(url);
                         headers = this.api.headers;
-                        return [4 /*yield*/, (0, undici_1.request)(url, { headers: headers }).then(function (r) { return r.body.text(); })];
+                        return [4 /*yield*/, fetch(url, { headers: headers }).then(function (r) { return r.text(); })];
                     case 1:
                         songHTML = _a.sent();
                         json = JSON.parse(songHTML.match(/(\[{)(.*)(?=;)/gm)[0]);

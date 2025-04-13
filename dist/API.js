@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -9,8 +20,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -37,162 +48,101 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.API = void 0;
-var undici_1 = require("undici");
 var apiURL = "https://api.soundcloud.com";
 var apiV2URL = "https://api-v2.soundcloud.com";
 var webURL = "https://soundcloud.com";
 var API = /** @class */ (function () {
     function API(clientId, oauthToken, proxy) {
         var _this = this;
-        this.clientId = clientId;
-        this.oauthToken = oauthToken;
-        this.api = new undici_1.Pool(apiURL);
-        this.apiV2 = new undici_1.Pool(apiV2URL);
-        this.web = new undici_1.Pool(webURL);
-        /**
-         * Gets an endpoint from the Soundcloud API.
-         */
-        this.get = function (endpoint, params) {
-            return _this.getRequest(_this.api, apiURL, endpoint, params);
-        };
-        /**
-         * Gets an endpoint from the Soundcloud V2 API.
-         */
-        this.getV2 = function (endpoint, params) {
-            return _this.getRequest(_this.apiV2, apiV2URL, endpoint, params);
-        };
-        /**
-         * Some endpoints use the main website as the URL.
-         */
-        this.getWebsite = function (endpoint, params) {
-            return _this.getRequest(_this.web, webURL, endpoint, params);
-        };
-        /**
-         * Gets a URL, such as download, stream, attachment, etc.
-         */
-        this.getURL = function (URI, params) {
-            if (_this.proxy)
-                return _this.request(_this.proxy, _this.buildOptions(URI, "GET", params));
+        this.get = function (endpoint, params) { return _this.getRequest(apiURL, endpoint, params); };
+        this.getV2 = function (endpoint, params) { return _this.getRequest(apiV2URL, endpoint, params); };
+        this.getWebsite = function (endpoint, params) { return _this.getRequest(webURL, endpoint, params); };
+        this.getURL = function (URI, params) { return _this.fetchRequest(URI, "GET", params); };
+        this.post = function (endpoint, params) { return _this.fetchRequest("".concat(apiURL, "/").concat(endpoint), "POST", params); };
+        this.options = function (method, params) {
             var options = {
-                query: params || {},
-                headers: API.headers,
-                maxRedirections: 5,
-            };
-            if (_this.clientId)
-                options.query.client_id = _this.clientId;
-            if (_this.oauthToken)
-                options.query.oauth_token = _this.oauthToken;
-            return (0, undici_1.request)(URI, options).then(function (r) {
-                if (r.statusCode.toString().startsWith("2")) {
-                    if (r.headers["content-type"].includes("application/json"))
-                        return r.body.json();
-                    return r.body.text();
-                }
-                throw new Error("Status code ".concat(r.statusCode));
-            });
-        };
-        this.buildOptions = function (path, method, params) {
-            if (method === void 0) { method = "GET"; }
-            var options = {
-                query: (method == "GET" && params) || {},
-                headers: API.headers,
                 method: method,
-                path: path,
-                maxRedirections: 5,
+                headers: __assign({}, API.headers),
+                redirect: "follow"
             };
             if (method === "POST" && params)
                 options.body = JSON.stringify(params);
-            if (_this.clientId)
-                options.query.client_id = _this.clientId;
-            if (_this.oauthToken)
-                options.query.oauth_token = _this.oauthToken;
             return options;
         };
-        this.request = function (pool, options) {
-            return pool.request(options).then(function (r) {
-                if (r.statusCode.toString().startsWith("2")) {
-                    if (r.headers["content-type"].includes("application/json"))
-                        return r.body.json();
-                    return r.body.text();
-                }
-                throw new Error("Status code ".concat(r.statusCode));
-            });
-        };
-        this.getRequest = function (pool, origin, endpoint, params) { return __awaiter(_this, void 0, void 0, function () {
-            var options, _a;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        if (!!this.clientId) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.getClientId()];
-                    case 1:
-                        _b.sent();
-                        _b.label = 2;
-                    case 2:
-                        if (endpoint.startsWith("/"))
-                            endpoint = endpoint.slice(1);
-                        options = this.buildOptions("".concat(this.proxy ? origin : "", "/").concat(endpoint), "GET", params);
-                        _b.label = 3;
-                    case 3:
-                        _b.trys.push([3, 5, , 7]);
-                        return [4 /*yield*/, this.request(this.proxy || pool, options)];
-                    case 4: return [2 /*return*/, _b.sent()];
-                    case 5:
-                        _a = _b.sent();
-                        return [4 /*yield*/, this.getClientId(true)];
-                    case 6:
-                        _b.sent();
-                        return [2 /*return*/, this.request(this.proxy || pool, options)];
-                    case 7: return [2 /*return*/];
-                }
-            });
-        }); };
-        this.post = function (endpoint, params) { return __awaiter(_this, void 0, void 0, function () {
-            var options;
+        this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
+            var query, response, contentType;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        if (!params)
+                            params = {};
                         if (!!this.clientId) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.getClientId()];
                     case 1:
                         _a.sent();
                         _a.label = 2;
                     case 2:
+                        params.client_id = this.clientId;
+                        if (this.oauthToken)
+                            params.oauth_token = this.oauthToken;
+                        query = params ? "?" + new URLSearchParams(params).toString() : "";
+                        return [4 /*yield*/, fetch(url + query, this.options(method, params))];
+                    case 3:
+                        response = _a.sent();
+                        if (!response.ok)
+                            throw new Error("Status code ".concat(response.status));
+                        contentType = response.headers.get("content-type");
+                        return [2 /*return*/, contentType && contentType.includes("application/json") ? response.json() : response.text()];
+                }
+            });
+        }); };
+        this.getRequest = function (origin, endpoint, params) { return __awaiter(_this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!params)
+                            params = {};
+                        if (!!this.clientId) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.getClientId()];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2:
+                        params.client_id = this.clientId;
                         if (endpoint.startsWith("/"))
                             endpoint = endpoint.slice(1);
-                        options = this.buildOptions("".concat(this.proxy ? origin : "", "/").concat(endpoint), "POST", params);
-                        return [2 /*return*/, this.request(this.proxy || this.api, options)];
+                        return [2 /*return*/, this.fetchRequest("".concat(origin, "/").concat(endpoint), "GET", params)];
                 }
             });
         }); };
         this.getClientIdWeb = function () { return __awaiter(_this, void 0, void 0, function () {
-            var response, urls, script, clientId;
+            var response, urls, _i, urls_1, scriptURL, script, clientId;
             var _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0: return [4 /*yield*/, this.request(this.proxy || this.web, this.buildOptions(this.proxy ? webURL : "/"))];
+                    case 0: return [4 /*yield*/, fetch(webURL).then(function (r) { return r.text(); })];
                     case 1:
                         response = _b.sent();
                         if (!response || typeof response !== "string")
                             throw new Error("Could not find client ID");
-                        urls = response.match(/(?!<script.*?src=")https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*\.js)(?=.*?>)/g);
-                        if (!urls || urls.length === 0)
+                        urls = response.match(/https?:\/\/[^\s"]+\.js/g);
+                        if (!urls)
                             throw new Error("Could not find script URLs");
+                        _i = 0, urls_1 = urls;
                         _b.label = 2;
-                    case 2: return [4 /*yield*/, (this.proxy
-                            ? this.request(this.proxy, this.buildOptions(urls.pop()))
-                            : (0, undici_1.request)(urls.pop()).then(function (r) { return r.body.text(); }))];
+                    case 2:
+                        if (!(_i < urls_1.length)) return [3 /*break*/, 5];
+                        scriptURL = urls_1[_i];
+                        return [4 /*yield*/, fetch(scriptURL).then(function (r) { return r.text(); })];
                     case 3:
                         script = _b.sent();
-                        if (!script || typeof script !== "string")
-                            return [3 /*break*/, 4];
                         clientId = (_a = script.match(/[{,]client_id:"(\w+)"/)) === null || _a === void 0 ? void 0 : _a[1];
-                        if (typeof clientId === "string")
+                        if (clientId)
                             return [2 /*return*/, clientId];
                         _b.label = 4;
                     case 4:
-                        if (urls.length > 0) return [3 /*break*/, 2];
-                        _b.label = 5;
+                        _i++;
+                        return [3 /*break*/, 2];
                     case 5: throw new Error("Could not find client ID in script URLs");
                 }
             });
@@ -202,47 +152,57 @@ var API = /** @class */ (function () {
             var _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0: return [4 /*yield*/, (0, undici_1.request)("https://m.soundcloud.com/", {
-                            headers: {
-                                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5_1 like Mac OS X) " +
-                                    "AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/99.0.4844.47 Mobile/15E148 Safari/604.1",
-                            },
-                        }).then(function (r) { return r.body.text(); })];
+                    case 0: return [4 /*yield*/, fetch("https://m.soundcloud.com/", {
+                            headers: { "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/99.0.4844.47 Mobile/15E148 Safari/604.1" }
+                        }).then(function (r) { return r.text(); })];
                     case 1:
                         response = _b.sent();
                         clientId = (_a = response.match(/"clientId":"(\w+?)"/)) === null || _a === void 0 ? void 0 : _a[1];
-                        if (typeof clientId === "string")
+                        if (clientId)
                             return [2 /*return*/, clientId];
                         throw new Error("Could not find client ID");
                 }
             });
         }); };
         this.getClientId = function (reset) { return __awaiter(_this, void 0, void 0, function () {
-            var _a;
-            var _this = this;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var _a, webError_1, _b, mobileError_1;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
-                        if (!(!this.oauthToken && (!this.clientId || reset))) return [3 /*break*/, 2];
-                        _a = this;
-                        return [4 /*yield*/, this.getClientIdWeb().catch(function (webError) {
-                                return _this.getClientIdMobile().catch(function (mobileError) {
-                                    throw new Error("Could not find client ID. Please provide one in the constructor. (Guide: https://github.com/Tenpi/soundcloud.ts#getting-started)" +
-                                        "\nWeb error: ".concat(webError) +
-                                        "\nMobile error: ".concat(mobileError));
-                                });
-                            })];
+                        if (!(!this.oauthToken && (!this.clientId || reset))) return [3 /*break*/, 8];
+                        _c.label = 1;
                     case 1:
-                        _a.clientId = _b.sent();
-                        _b.label = 2;
-                    case 2: return [2 /*return*/, this.clientId];
+                        _c.trys.push([1, 3, , 8]);
+                        _a = this;
+                        return [4 /*yield*/, this.getClientIdWeb()];
+                    case 2:
+                        _a.clientId = _c.sent();
+                        return [3 /*break*/, 8];
+                    case 3:
+                        webError_1 = _c.sent();
+                        console.log("Web fetch error:", webError_1);
+                        _c.label = 4;
+                    case 4:
+                        _c.trys.push([4, 6, , 7]);
+                        _b = this;
+                        return [4 /*yield*/, this.getClientIdMobile()];
+                    case 5:
+                        _b.clientId = _c.sent();
+                        return [3 /*break*/, 7];
+                    case 6:
+                        mobileError_1 = _c.sent();
+                        console.log("Mobile fetch error:", mobileError_1);
+                        throw new Error("Could not find client ID. Provide one in the constructor.\nWeb error: ".concat(webError_1, "\nMobile error: ").concat(mobileError_1));
+                    case 7: return [3 /*break*/, 8];
+                    case 8: return [2 /*return*/, this.clientId];
                 }
             });
         }); };
+        this.clientId = clientId;
+        this.oauthToken = oauthToken;
+        this.proxy = proxy;
         if (oauthToken)
             API.headers.Authorization = "OAuth ".concat(oauthToken);
-        if (proxy)
-            this.proxy = new undici_1.Pool(proxy);
     }
     Object.defineProperty(API.prototype, "headers", {
         get: function () {
@@ -254,7 +214,7 @@ var API = /** @class */ (function () {
     API.headers = {
         Origin: "https://soundcloud.com",
         Referer: "https://soundcloud.com/",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.67",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.67"
     };
     return API;
 }());

@@ -48,28 +48,4 @@ export class Resolve {
     }
     return id;
   };
-
-  /**
-   * Gets the ID from the html source.
-   */
-  public getAlt = async (resolvable: string | number) => {
-    // Use same logic as get method
-    const isNumericId = String(resolvable).match(/^\d+$/);
-
-    if (!isNumericId && !String(resolvable).includes("soundcloud")) {
-      resolvable = `https://soundcloud.com/${resolvable}`;
-    }
-
-    let id = resolvable;
-    if (String(resolvable).includes("soundcloud")) {
-      const html = await request(String(resolvable), {
-        headers: this.api.headers,
-      }).then((r) => r.body.text());
-      const data = JSON.parse(html.match(/($${"id")(.*?)(?=$$;)/)?.[0]);
-      id = data[data.length - 1]?.data?.[0]?.id
-        ? data[data.length - 1].data[0].id
-        : data[data.length - 2].data[0].id;
-    }
-    return id;
-  };
 }

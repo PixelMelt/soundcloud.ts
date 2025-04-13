@@ -1,3 +1,9 @@
+/// <reference types="mocha" />
+/// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="node" />
 import type { SoundcloudTrack } from "../types";
 import { API } from "../API";
 export declare class Util {
@@ -12,7 +18,7 @@ export declare class Util {
     /**
      * Gets the direct streaming link of a track.
      */
-    streamLink: (trackResolvable: string | SoundcloudTrack, protocol?: "progressive" | "hls") => Promise<string>;
+    streamLink: (trackResolvable: string | SoundcloudTrack, protocol?: "progressive" | "hls") => Promise<any>;
     private readonly mergeFiles;
     private readonly checkFFmpeg;
     private readonly spawnFFmpeg;
@@ -20,6 +26,7 @@ export declare class Util {
      * Readable stream of m3u playlists.
      */
     private readonly m3uReadableStream;
+    private webToNodeStream;
     /**
      * Downloads the mp3 stream of a track.
      */

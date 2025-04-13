@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -40,7 +40,6 @@ exports.Util = void 0;
 var fs = require("fs");
 var path = require("path");
 var index_1 = require("./index");
-var undici_1 = require("undici");
 var stream_1 = require("stream");
 var child_process_1 = require("child_process");
 var sanitize_filename_ts_1 = require("sanitize-filename-ts");
@@ -109,9 +108,7 @@ var Util = /** @class */ (function () {
                         _c.label = 2;
                     case 2:
                         _c.trys.push([2, 4, , 10]);
-                        return [4 /*yield*/, (0, undici_1.request)(url + connect, { headers: headers })
-                                .then(function (r) { return r.body.json(); })
-                                .then(function (r) { return r.url; })];
+                        return [4 /*yield*/, fetch(url + connect, { headers: headers }).then(function (r) { return r.json(); }).then(function (r) { return r.url; })];
                     case 3: return [2 /*return*/, _c.sent()];
                     case 4:
                         _a = _c.sent();
@@ -122,9 +119,7 @@ var Util = /** @class */ (function () {
                         _c.label = 6;
                     case 6:
                         _c.trys.push([6, 8, , 9]);
-                        return [4 /*yield*/, (0, undici_1.request)(url + connect, { headers: headers })
-                                .then(function (r) { return r.body.json(); })
-                                .then(function (r) { return r.url; })];
+                        return [4 /*yield*/, fetch(url + connect, { headers: headers }).then(function (r) { return r.json(); }).then(function (r) { return r.url; })];
                     case 7: return [2 /*return*/, _c.sent()];
                     case 8:
                         _b = _c.sent();
@@ -265,9 +260,7 @@ var Util = /** @class */ (function () {
                     case 3:
                         client_id = _a.sent();
                         connect = transcoding.url.includes("?") ? "&client_id=".concat(client_id) : "?client_id=".concat(client_id);
-                        return [4 /*yield*/, (0, undici_1.request)(transcoding.url + connect, { headers: this.api.headers })
-                                .then(function (r) { return r.body.json(); })
-                                .then(function (r) { return r.url; })];
+                        return [4 /*yield*/, fetch(transcoding.url + connect, { headers: this.api.headers }).then(function (r) { return r.json(); }).then(function (r) { return r.url; })];
                     case 4:
                         m3uLink = _a.sent();
                         destDir = path.join(__dirname, "tmp_".concat(temp++));
@@ -284,7 +277,7 @@ var Util = /** @class */ (function () {
                             return [2 /*return*/, this.m3uReadableStream(trackResolvable)];
                         }
                         return [3 /*break*/, 12];
-                    case 5: return [4 /*yield*/, (0, undici_1.request)(m3uLink, { headers: headers }).then(function (r) { return r.body.text(); })];
+                    case 5: return [4 /*yield*/, fetch(m3uLink, { headers: headers }).then(function (r) { return r.text(); })];
                     case 6:
                         m3u = _a.sent();
                         urls = m3u.match(/(http).*?(?=\s)/gm);
@@ -293,7 +286,7 @@ var Util = /** @class */ (function () {
                         _a.label = 7;
                     case 7:
                         if (!(i < urls.length)) return [3 /*break*/, 10];
-                        return [4 /*yield*/, (0, undici_1.request)(urls[i], { headers: headers }).then(function (r) { return r.body.arrayBuffer(); })];
+                        return [4 /*yield*/, fetch(urls[i], { headers: headers }).then(function (r) { return r.arrayBuffer(); })];
                     case 8:
                         arrayBuffer = _a.sent();
                         chunkPath = path.join(destDir, "".concat(i, ".").concat(transcoding.type));
@@ -314,11 +307,36 @@ var Util = /** @class */ (function () {
                 }
             });
         }); };
+        this.webToNodeStream = function (webStream) {
+            var reader = webStream.getReader();
+            return new stream_1.Readable({
+                read: function () {
+                    return __awaiter(this, void 0, void 0, function () {
+                        var _a, done, value;
+                        return __generator(this, function (_b) {
+                            switch (_b.label) {
+                                case 0: return [4 /*yield*/, reader.read()];
+                                case 1:
+                                    _a = _b.sent(), done = _a.done, value = _a.value;
+                                    if (done) {
+                                        this.push(null);
+                                    }
+                                    else {
+                                        this.push(value);
+                                    }
+                                    return [2 /*return*/];
+                            }
+                        });
+                    });
+                }
+            });
+        };
         /**
          * Downloads the mp3 stream of a track.
          */
         this.downloadTrackStream = function (trackResolvable, title, dest) { return __awaiter(_this, void 0, void 0, function () {
             var result, track, transcodings, transcoding, url, headers, stream_2, type, stream, fileName, writeStream;
+            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.resolveTrack(trackResolvable)];
@@ -341,7 +359,7 @@ var Util = /** @class */ (function () {
                     case 5:
                         url = _a.sent();
                         headers = this.api.headers;
-                        return [4 /*yield*/, (0, undici_1.request)(url, { headers: headers }).then(function (r) { return r.body; })];
+                        return [4 /*yield*/, fetch(url, { headers: headers }).then(function (r) { return _this.webToNodeStream(r.body); })];
                     case 6:
                         stream_2 = _a.sent();
                         type = transcoding.format.mime_type.startsWith('audio/mp4; codecs="mp4a') ? "m4a" : "mp3";
@@ -363,15 +381,16 @@ var Util = /** @class */ (function () {
          * Downloads a track on Soundcloud.
          */
         this.downloadTrack = function (trackResolvable, dest) { return __awaiter(_this, void 0, void 0, function () {
-            var disallowedCharactersRegex, track, downloadObj, result, arrayBuffer, _a;
+            var disallowedCharactersRegex, folder, track, downloadObj, result, arrayBuffer, _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
                         disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
                         if (!dest)
                             dest = "./";
-                        if (!fs.existsSync(dest))
-                            fs.mkdirSync(dest, { recursive: true });
+                        folder = path.extname(dest) ? path.dirname(dest) : dest;
+                        if (!fs.existsSync(folder))
+                            fs.mkdirSync(folder, { recursive: true });
                         return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _b.sent();
@@ -382,7 +401,7 @@ var Util = /** @class */ (function () {
                         return [4 /*yield*/, this.api.getV2("/tracks/".concat(track.id, "/download"))];
                     case 3:
                         downloadObj = _b.sent();
-                        return [4 /*yield*/, (0, undici_1.request)(downloadObj.redirectUri)
+                        return [4 /*yield*/, fetch(downloadObj.redirectUri)
                             // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
                             // what the fuck soundcloud users
                         ];
@@ -393,8 +412,8 @@ var Util = /** @class */ (function () {
                         track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
                         if (track.title.length > 50)
                             track.title = track.title.slice(0, 50) + "...";
-                        dest = path.extname(dest) ? dest : path.join(dest, "".concat(track.title.replace(disallowedCharactersRegex, ""), ".").concat(result.headers["x-amz-meta-file-type"]));
-                        return [4 /*yield*/, result.body.arrayBuffer()];
+                        dest = path.extname(dest) ? dest : path.join(dest, "".concat(track.title.replace(/[\\/:*?\"<>|]/g, ""), ".").concat(result.headers["x-amz-meta-file-type"]));
+                        return [4 /*yield*/, result.arrayBuffer()];
                     case 5:
                         arrayBuffer = _b.sent();
                         fs.writeFileSync(dest, Buffer.from(arrayBuffer, "binary"));
@@ -495,10 +514,10 @@ var Util = /** @class */ (function () {
                         url = _a.sent();
                         if (!url)
                             return [2 /*return*/, this.m3uReadableStream(trackResolvable).then(function (r) { return r.stream; })];
-                        return [4 /*yield*/, (0, undici_1.request)(url, { headers: this.api.headers }).then(function (r) { return r.body; })];
+                        return [4 /*yield*/, fetch(url, { headers: this.api.headers }).then(function (r) { return r.body; })];
                     case 2:
                         readable = _a.sent();
-                        return [2 /*return*/, readable];
+                        return [2 /*return*/, this.webToNodeStream(readable)];
                 }
             });
         }); };
@@ -528,7 +547,7 @@ var Util = /** @class */ (function () {
                         url = "".concat(artwork, "?client_id=").concat(client_id);
                         if (noDL)
                             return [2 /*return*/, url];
-                        return [4 /*yield*/, (0, undici_1.request)(url).then(function (r) { return r.body.arrayBuffer(); })];
+                        return [4 /*yield*/, fetch(url).then(function (r) { return r.arrayBuffer(); })];
                     case 3:
                         arrayBuffer = _a.sent();
                         fs.writeFileSync(dest, Buffer.from(arrayBuffer));

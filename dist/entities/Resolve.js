@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -37,11 +37,39 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Resolve = void 0;
-var undici_1 = require("undici");
 var Resolve = /** @class */ (function () {
     function Resolve(api) {
         var _this = this;
         this.api = api;
+        /**
+         * Gets the ID from the html source.
+         */
+        this.getAlt = function (resolvable) { return __awaiter(_this, void 0, void 0, function () {
+            var id, html, data;
+            var _a, _b, _c, _d;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
+                    case 0:
+                        if (!String(resolvable).match(/\d{8,}/) &&
+                            !String(resolvable).includes("soundcloud")) {
+                            resolvable = "https://soundcloud.com/".concat(resolvable);
+                        }
+                        id = resolvable;
+                        if (!String(resolvable).includes("soundcloud")) return [3 /*break*/, 2];
+                        return [4 /*yield*/, fetch(String(resolvable), {
+                                headers: this.api.headers,
+                            }).then(function (r) { return r.text(); })];
+                    case 1:
+                        html = _e.sent();
+                        data = JSON.parse((_a = html.match(/(\[{"id")(.*?)(?=\);)/)) === null || _a === void 0 ? void 0 : _a[0]);
+                        id = ((_d = (_c = (_b = data[data.length - 1]) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.id)
+                            ? data[data.length - 1].data[0].id
+                            : data[data.length - 2].data[0].id;
+                        _e.label = 2;
+                    case 2: return [2 /*return*/, id];
+                }
+            });
+        }); };
         /**
          * Gets the ID of a user/playlist/track from the Soundcloud URL using the v2 API.
          */
@@ -59,36 +87,11 @@ var Resolve = /** @class */ (function () {
                         if (!String(resolvable).includes("soundcloud")) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.api.getV2("resolve", { url: resolvable })];
                     case 1:
-                        resolved = _a.sent();
+                        resolved = (_a.sent());
                         if (full)
                             return [2 /*return*/, resolved];
                         id = resolved.id;
                         _a.label = 2;
-                    case 2: return [2 /*return*/, id];
-                }
-            });
-        }); };
-        /**
-         * Gets the ID from the html source.
-         */
-        this.getAlt = function (resolvable) { return __awaiter(_this, void 0, void 0, function () {
-            var isNumericId, id, html, data;
-            var _a, _b, _c, _d;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
-                    case 0:
-                        isNumericId = String(resolvable).match(/^\d+$/);
-                        if (!isNumericId && !String(resolvable).includes("soundcloud")) {
-                            resolvable = "https://soundcloud.com/".concat(resolvable);
-                        }
-                        id = resolvable;
-                        if (!String(resolvable).includes("soundcloud")) return [3 /*break*/, 2];
-                        return [4 /*yield*/, (0, undici_1.request)(String(resolvable), { headers: this.api.headers }).then(function (r) { return r.body.text(); })];
-                    case 1:
-                        html = _e.sent();
-                        data = JSON.parse((_a = html.match(/($${"id")(.*?)(?=$$;)/)) === null || _a === void 0 ? void 0 : _a[0]);
-                        id = ((_d = (_c = (_b = data[data.length - 1]) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.id) ? data[data.length - 1].data[0].id : data[data.length - 2].data[0].id;
-                        _e.label = 2;
                     case 2: return [2 /*return*/, id];
                 }
             });
