@@ -1,9 +1,3 @@
-/// <reference types="mocha" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import type { SoundcloudTrack } from "../types";
 import { API } from "../API";
 export declare class Util {

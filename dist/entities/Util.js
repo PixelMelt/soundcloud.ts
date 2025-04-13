@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -85,7 +85,9 @@ var Util = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _a.sent();
-                        transcodings = track.media.transcodings.sort(function (t) { return (t.quality === "hq" ? -1 : 1); });
+                        transcodings = track.media.transcodings.sort(function (t) {
+                            return t.quality === "hq" ? -1 : 1;
+                        });
                         if (!protocol)
                             return [2 /*return*/, transcodings];
                         return [2 /*return*/, transcodings.filter(function (t) { return t.format.protocol === protocol; })];
@@ -104,22 +106,30 @@ var Util = /** @class */ (function () {
                     case 1:
                         client_id = _c.sent();
                         headers = this.api.headers;
-                        connect = url.includes("?") ? "&client_id=".concat(client_id) : "?client_id=".concat(client_id);
+                        connect = url.includes("?")
+                            ? "&client_id=".concat(client_id)
+                            : "?client_id=".concat(client_id);
                         _c.label = 2;
                     case 2:
                         _c.trys.push([2, 4, , 10]);
-                        return [4 /*yield*/, fetch(url + connect, { headers: headers }).then(function (r) { return r.json(); }).then(function (r) { return r.url; })];
+                        return [4 /*yield*/, fetch(url + connect, { headers: headers })
+                                .then(function (r) { return r.json(); })
+                                .then(function (r) { return r.url; })];
                     case 3: return [2 /*return*/, _c.sent()];
                     case 4:
                         _a = _c.sent();
                         return [4 /*yield*/, this.api.getClientId(true)];
                     case 5:
                         client_id = _c.sent();
-                        connect = url.includes("?") ? "&client_id=".concat(client_id) : "?client_id=".concat(client_id);
+                        connect = url.includes("?")
+                            ? "&client_id=".concat(client_id)
+                            : "?client_id=".concat(client_id);
                         _c.label = 6;
                     case 6:
                         _c.trys.push([6, 8, , 9]);
-                        return [4 /*yield*/, fetch(url + connect, { headers: headers }).then(function (r) { return r.json(); }).then(function (r) { return r.url; })];
+                        return [4 /*yield*/, fetch(url + connect, { headers: headers })
+                                .then(function (r) { return r.json(); })
+                                .then(function (r) { return r.url; })];
                     case 7: return [2 /*return*/, _c.sent()];
                     case 8:
                         _b = _c.sent();
@@ -162,7 +172,10 @@ var Util = /** @class */ (function () {
                             return __generator(this, function (_b) {
                                 switch (_b.label) {
                                     case 0: return [4 /*yield*/, new Promise(function (resolve, reject) {
-                                            fs.createReadStream(file).on("error", reject).on("end", resolve).pipe(outStream, { end: false });
+                                            fs.createReadStream(file)
+                                                .on("error", reject)
+                                                .on("end", resolve)
+                                                .pipe(outStream, { end: false });
                                         })];
                                     case 1:
                                         _b.sent();
@@ -196,7 +209,11 @@ var Util = /** @class */ (function () {
                 var fn = SOURCES_1[_i];
                 try {
                     var command = fn();
-                    var result = (0, child_process_1.spawnSync)(command, ["-h"], { windowsHide: true, shell: true, encoding: "utf-8" });
+                    var result = (0, child_process_1.spawnSync)(command, ["-h"], {
+                        windowsHide: true,
+                        shell: true,
+                        encoding: "utf-8",
+                    });
                     if (result.error)
                         throw result.error;
                     if (result.stderr && !result.stdout)
@@ -242,7 +259,8 @@ var Util = /** @class */ (function () {
                             throw "No transcodings found";
                         for (_i = 0, transcodings_1 = transcodings; _i < transcodings_1.length; _i++) {
                             t = transcodings_1[_i];
-                            if (t.format.mime_type.startsWith('audio/mp4; codecs="mp4a') && this.checkFFmpeg()) {
+                            if (t.format.mime_type.startsWith('audio/mp4; codecs="mp4a') &&
+                                this.checkFFmpeg()) {
                                 transcoding = { url: t.url, type: "m4a" };
                                 break;
                             }
@@ -252,15 +270,23 @@ var Util = /** @class */ (function () {
                             }
                         }
                         if (!transcoding) {
-                            console.log("Support for this track is not yet implemented, please open an issue on GitHub.\n\n            URL: ".concat(track.permalink_url, ".\n\n            Type: ").concat(track.media.transcodings.map(function (t) { return t.format.mime_type; }).join(" | ")));
+                            console.log("Support for this track is not yet implemented, please open an issue on GitHub.\n\n            URL: ".concat(track.permalink_url, ".\n\n            Type: ").concat(track.media.transcodings
+                                .map(function (t) { return t.format.mime_type; })
+                                .join(" | ")));
                             throw "No supported transcodings found";
                         }
                         headers = this.api.headers;
                         return [4 /*yield*/, this.api.getClientId()];
                     case 3:
                         client_id = _a.sent();
-                        connect = transcoding.url.includes("?") ? "&client_id=".concat(client_id) : "?client_id=".concat(client_id);
-                        return [4 /*yield*/, fetch(transcoding.url + connect, { headers: this.api.headers }).then(function (r) { return r.json(); }).then(function (r) { return r.url; })];
+                        connect = transcoding.url.includes("?")
+                            ? "&client_id=".concat(client_id)
+                            : "?client_id=".concat(client_id);
+                        return [4 /*yield*/, fetch(transcoding.url + connect, {
+                                headers: this.api.headers,
+                            })
+                                .then(function (r) { return r.json(); })
+                                .then(function (r) { return r.url; })];
                     case 4:
                         m3uLink = _a.sent();
                         destDir = path.join(__dirname, "tmp_".concat(temp++));
@@ -269,7 +295,22 @@ var Util = /** @class */ (function () {
                         output = path.join(destDir, "out.".concat(transcoding.type));
                         if (!(transcoding.type === "m4a")) return [3 /*break*/, 5];
                         try {
-                            this.spawnFFmpeg(["-y", "-loglevel", "warning", "-i", m3uLink, "-bsf:a", "aac_adtstoasc", "-vcodec", "copy", "-c", "copy", "-crf", "50", output]);
+                            this.spawnFFmpeg([
+                                "-y",
+                                "-loglevel",
+                                "warning",
+                                "-i",
+                                m3uLink,
+                                "-bsf:a",
+                                "aac_adtstoasc",
+                                "-vcodec",
+                                "copy",
+                                "-c",
+                                "copy",
+                                "-crf",
+                                "50",
+                                output,
+                            ]);
                         }
                         catch (_b) {
                             console.warn("Failed to transmux to m4a (hq), download as mp3 (hq) instead.");
@@ -286,7 +327,9 @@ var Util = /** @class */ (function () {
                         _a.label = 7;
                     case 7:
                         if (!(i < urls.length)) return [3 /*break*/, 10];
-                        return [4 /*yield*/, fetch(urls[i], { headers: headers }).then(function (r) { return r.arrayBuffer(); })];
+                        return [4 /*yield*/, fetch(urls[i], { headers: headers }).then(function (r) {
+                                return r.arrayBuffer();
+                            })];
                     case 8:
                         arrayBuffer = _a.sent();
                         chunkPath = path.join(destDir, "".concat(i, ".").concat(transcoding.type));
@@ -328,7 +371,7 @@ var Util = /** @class */ (function () {
                             }
                         });
                     });
-                }
+                },
             });
         };
         /**
@@ -359,15 +402,21 @@ var Util = /** @class */ (function () {
                     case 5:
                         url = _a.sent();
                         headers = this.api.headers;
-                        return [4 /*yield*/, fetch(url, { headers: headers }).then(function (r) { return _this.webToNodeStream(r.body); })];
+                        return [4 /*yield*/, fetch(url, { headers: headers }).then(function (r) {
+                                return _this.webToNodeStream(r.body);
+                            })];
                     case 6:
                         stream_2 = _a.sent();
-                        type = transcoding.format.mime_type.startsWith('audio/mp4; codecs="mp4a') ? "m4a" : "mp3";
+                        type = transcoding.format.mime_type.startsWith('audio/mp4; codecs="mp4a')
+                            ? "m4a"
+                            : "mp3";
                         result = { stream: stream_2, type: type };
                         _a.label = 7;
                     case 7:
                         stream = result.stream;
-                        fileName = path.extname(dest) ? dest : path.join(dest, "".concat(title, ".").concat(result.type));
+                        fileName = path.extname(dest)
+                            ? dest
+                            : path.join(dest, "".concat(title, ".").concat(result.type));
                         writeStream = fs.createWriteStream(fileName);
                         stream.pipe(writeStream);
                         return [4 /*yield*/, new Promise(function (resolve) { return stream.on("end", function () { return resolve(); }); })];
@@ -400,11 +449,8 @@ var Util = /** @class */ (function () {
                         _b.trys.push([2, 6, , 7]);
                         return [4 /*yield*/, this.api.getV2("/tracks/".concat(track.id, "/download"))];
                     case 3:
-                        downloadObj = _b.sent();
-                        return [4 /*yield*/, fetch(downloadObj.redirectUri)
-                            // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
-                            // what the fuck soundcloud users
-                        ];
+                        downloadObj = (_b.sent());
+                        return [4 /*yield*/, fetch(downloadObj.redirectUri)];
                     case 4:
                         result = _b.sent();
                         // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
@@ -412,10 +458,12 @@ var Util = /** @class */ (function () {
                         track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
                         if (track.title.length > 50)
                             track.title = track.title.slice(0, 50) + "...";
-                        dest = path.extname(dest) ? dest : path.join(dest, "".concat(track.title.replace(/[\\/:*?\"<>|]/g, ""), ".").concat(result.headers["x-amz-meta-file-type"]));
+                        dest = path.extname(dest)
+                            ? dest
+                            : path.join(dest, "".concat(track.title.replace(disallowedCharactersRegex, ""), ".").concat(result.headers["x-amz-meta-file-type"]));
                         return [4 /*yield*/, result.arrayBuffer()];
                     case 5:
-                        arrayBuffer = _b.sent();
+                        arrayBuffer = (_b.sent());
                         fs.writeFileSync(dest, Buffer.from(arrayBuffer, "binary"));
                         return [2 /*return*/, dest];
                     case 6:
@@ -538,7 +586,9 @@ var Util = /** @class */ (function () {
                         return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _a.sent();
-                        artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url).replace(".jpg", ".png").replace("-large", "-t500x500");
+                        artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url)
+                            .replace(".jpg", ".png")
+                            .replace("-large", "-t500x500");
                         title = track.title.replace(disallowedCharactersRegex, "");
                         dest = path.extname(dest) ? dest : path.join(folder, "".concat(title, ".png"));
                         return [4 /*yield*/, this.api.getClientId()];
