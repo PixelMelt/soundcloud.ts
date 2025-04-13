@@ -6,6 +6,7 @@ import { Tracks, Users, Playlists } from "./index";
 import { Readable } from "stream";
 import { spawnSync } from "child_process";
 import { sanitize } from "sanitize-filename-ts";
+import axios from "axios";
 
 let temp = 0;
 const FFMPEG = { checked: false, path: "" };
@@ -55,19 +56,19 @@ export class Util {
       ? `&client_id=${client_id}`
       : `?client_id=${client_id}`;
     try {
-      return await fetch(url + connect, { headers })
-        .then((r) => r.json())
-        .then((r) => r.url);
-    } catch {
+      const response = await axios.get(url + connect, { headers });
+      return response.data.url;
+    } catch (error) {
+      console.error("Error fetching stream link (attempt 1):", error);
       client_id = await this.api.getClientId(true);
       connect = url.includes("?")
         ? `&client_id=${client_id}`
         : `?client_id=${client_id}`;
       try {
-        return await fetch(url + connect, { headers })
-          .then((r) => r.json())
-          .then((r) => r.url);
-      } catch {
+        const response = await axios.get(url + connect, { headers });
+        return response.data.url;
+      } catch (error2) {
+        console.error("Error fetching stream link (attempt 2):", error2);
         return null;
       }
     }
@@ -181,11 +182,14 @@ export class Util {
     const connect = transcoding.url.includes("?")
       ? `&client_id=${client_id}`
       : `?client_id=${client_id}`;
-    const m3uLink = await fetch(transcoding.url + connect, {
-      headers: this.api.headers,
-    })
-      .then((r) => r.json())
-      .then((r) => r.url);
+    let m3uLink: string;
+    try {
+      const response = await axios.get(transcoding.url + connect, { headers });
+      m3uLink = response.data.url;
+    } catch (error) {
+      console.error("Error fetching M3U link:", error);
+      throw "Failed to fetch M3U link";
+    }
     const destDir = path.join(__dirname, `tmp_${temp++}`);
     if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
     const output = path.join(destDir, `out.${transcoding.type}`);
@@ -216,16 +220,39 @@ export class Util {
         return this.m3uReadableStream(trackResolvable);
       }
     } else {
-      const m3u = await fetch(m3uLink, { headers }).then((r) => r.text());
+      let m3u: string;
+      try {
+        const response = await axios.get(m3uLink, {
+          headers,
+          responseType: "text",
+        });
+        m3u = response.data;
+      } catch (error) {
+        console.error("Error fetching M3U content:", error);
+        Util.removeDirectory(destDir); // Clean up temp directory
+        throw "Failed to fetch M3U content";
+      }
       const urls = m3u.match(/(http).*?(?=\s)/gm);
+      if (!urls) {
+        Util.removeDirectory(destDir); // Clean up temp directory
+        throw "Could not parse URLs from M3U";
+      }
       const chunks: string[] = [];
       for (let i = 0; i < urls.length; i++) {
-        const arrayBuffer = await fetch(urls[i], { headers }).then((r) =>
-          r.arrayBuffer()
-        );
-        const chunkPath = path.join(destDir, `${i}.${transcoding.type}`);
-        fs.writeFileSync(chunkPath, Buffer.from(arrayBuffer));
-        chunks.push(chunkPath);
+        try {
+          const response = await axios.get(urls[i], {
+            headers,
+            responseType: "arraybuffer",
+          });
+          const chunkPath = path.join(destDir, `${i}.${transcoding.type}`);
+          fs.writeFileSync(chunkPath, Buffer.from(response.data));
+          chunks.push(chunkPath);
+        } catch (error) {
+          console.error(`Error downloading chunk ${i} (${urls[i]}):`, error);
+          // Decide if you want to continue or fail the whole process
+          // For now, let's skip this chunk and continue
+          continue;
+        }
       }
       await this.mergeFiles(chunks, output);
     }
@@ -233,21 +260,8 @@ export class Util {
       fs.readFileSync(output)
     );
     Util.removeDirectory(destDir);
+    Util.removeDirectory(destDir);
     return { stream, type: transcoding.type };
-  };
-
-  private webToNodeStream = (webStream: ReadableStream<Uint8Array>) => {
-    const reader = webStream.getReader();
-    return new Readable({
-      async read() {
-        const { done, value } = await reader.read();
-        if (done) {
-          this.push(null);
-        } else {
-          this.push(value);
-        }
-      },
-    });
   };
 
   /**
@@ -270,10 +284,37 @@ export class Util {
     } else {
       const transcoding = transcodings[0];
       const url = await this.getStreamLink(transcoding);
+      if (!url)
+        throw new Error("Could not get stream link for progressive download");
       const headers = this.api.headers;
-      const stream = await fetch(url, { headers }).then((r) =>
-        this.webToNodeStream(r.body)
-      );
+      let stream: NodeJS.ReadableStream;
+      try {
+        const response = await axios.get(url, {
+          headers,
+          responseType: "stream",
+        });
+        stream = response.data;
+      } catch (error) {
+        console.error("Error fetching progressive stream:", error);
+        // Attempt m3u stream as fallback
+        result = await this.m3uReadableStream(trackResolvable);
+        stream = result.stream; // Use the stream from m3uReadableStream
+        // Need to re-assign type as well if m3u fallback is used
+        const typeFromM3u = result.type;
+        result = { stream, type: typeFromM3u }; // Update result with m3u stream and type
+        // Now continue with the write stream logic using the fallback stream
+        const fileName = path.extname(dest)
+          ? dest
+          : path.join(dest, `${title}.${result.type}`);
+        const writeStream = fs.createWriteStream(fileName);
+        stream.pipe(writeStream);
+        await new Promise<void>((resolve, reject) => {
+          stream.on("end", resolve);
+          stream.on("error", reject); // Add error handling for the stream itself
+        });
+        return fileName;
+      }
+
       const type = transcoding.format.mime_type.startsWith(
         'audio/mp4; codecs="mp4a'
       )
@@ -311,7 +352,37 @@ export class Util {
         const downloadObj = (await this.api.getV2(
           `/tracks/${track.id}/download`
         )) as any;
-        const result = await fetch(downloadObj.redirectUri);
+        let result;
+        try {
+          // Use axios, expect arraybuffer, disable auto redirects, allow 3xx status
+          result = await axios.get(downloadObj.redirectUri, {
+            responseType: "arraybuffer",
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
+          });
+        } catch (error: any) {
+          // Manually handle 302 redirect if axios didn't follow or if configured not to
+          if (
+            error.response &&
+            error.response.status === 302 &&
+            error.response.headers.location
+          ) {
+            result = await axios.get(error.response.headers.location, {
+              responseType: "arraybuffer",
+            });
+          } else {
+            console.error(
+              "Error fetching downloadable track (initial/redirect):",
+              error
+            );
+            // Fallback to streaming if direct download fails
+            return this.downloadTrackStream(
+              track,
+              track.title.replace(disallowedCharactersRegex, ""),
+              dest
+            );
+          }
+        }
         // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
         // what the fuck soundcloud users
 
@@ -324,13 +395,16 @@ export class Util {
           : path.join(
               dest,
               `${track.title.replace(disallowedCharactersRegex, "")}.${
-                result.headers["x-amz-meta-file-type"]
+                // Axios response headers are lowercase
+                result.headers["x-amz-meta-file-type"] || "mp3" // Provide a default extension
               }`
             );
-        const arrayBuffer = (await result.arrayBuffer()) as any;
-        fs.writeFileSync(dest, Buffer.from(arrayBuffer, "binary"));
+        const arrayBuffer = result.data; // Axios puts arraybuffer in data
+        fs.writeFileSync(dest, Buffer.from(arrayBuffer)); // No 'binary' needed with Buffer.from(ArrayBuffer)
         return dest;
-      } catch {
+      } catch (e) {
+        // Catch specific errors if needed, or general catch
+        console.error("Error processing direct download:", e);
         return this.downloadTrackStream(
           track,
           track.title.replace(disallowedCharactersRegex, ""),
@@ -410,12 +484,26 @@ export class Util {
     trackResolvable: string | SoundcloudTrack
   ): Promise<NodeJS.ReadableStream> => {
     const url = await this.streamLink(trackResolvable, "progressive");
-    if (!url)
-      return this.m3uReadableStream(trackResolvable).then((r) => r.stream);
-    const readable = await fetch(url, { headers: this.api.headers }).then(
-      (r) => r.body
-    );
-    return this.webToNodeStream(readable);
+    if (!url) {
+      // Fallback to m3u stream if progressive link fails
+      const { stream } = await this.m3uReadableStream(trackResolvable);
+      return stream;
+    }
+    try {
+      const response = await axios.get(url, {
+        headers: this.api.headers,
+        responseType: "stream",
+      });
+      return response.data as NodeJS.ReadableStream;
+    } catch (error) {
+      console.error(
+        "Error fetching progressive stream for streamTrack:",
+        error
+      );
+      // Fallback to m3u stream on error
+      const { stream } = await this.m3uReadableStream(trackResolvable);
+      return stream;
+    }
   };
 
   /**
@@ -441,9 +529,17 @@ export class Util {
     const client_id = await this.api.getClientId();
     const url = `${artwork}?client_id=${client_id}`;
     if (noDL) return url;
-    const arrayBuffer = await fetch(url).then((r) => r.arrayBuffer());
-    fs.writeFileSync(dest, Buffer.from(arrayBuffer));
-    return dest;
+    try {
+      const response = await axios.get(url, { responseType: "arraybuffer" });
+      fs.writeFileSync(dest, Buffer.from(response.data));
+      return dest;
+    } catch (error) {
+      console.error("Error downloading song cover:", error);
+      // Decide how to handle the error, e.g., throw, return null, or return the path anyway?
+      // For now, let's re-throw or return null/undefined based on expected behavior.
+      // Throwing seems more appropriate if the download failed.
+      throw new Error(`Failed to download song cover from ${url}`);
+    }
   };
 
   private static readonly removeDirectory = (dir: string) => {

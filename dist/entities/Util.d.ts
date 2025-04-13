@@ -20,7 +20,6 @@ export declare class Util {
      * Readable stream of m3u playlists.
      */
     private readonly m3uReadableStream;
-    private webToNodeStream;
     /**
      * Downloads the mp3 stream of a track.
      */
