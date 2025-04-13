@@ -3,7 +3,6 @@ import * as fs from "fs"
 import * as path from "path"
 import {API} from "../API"
 import {Tracks, Users, Playlists} from "./index"
-import {request} from "undici"
 import {Readable} from "stream"
 import {spawnSync} from "child_process"
 import { sanitize } from "sanitize-filename-ts";
@@ -45,16 +44,12 @@ export class Util {
         const headers = this.api.headers
         let connect = url.includes("?") ? `&client_id=${client_id}` : `?client_id=${client_id}`
         try {
-            return await request(url + connect, {headers})
-                .then(r => r.body.json())
-                .then(r => (<{url: string}>r).url)
+            return await fetch(url + connect, {headers}).then(r => r.json()).then(r => r.url)
         } catch {
             client_id = await this.api.getClientId(true)
             connect = url.includes("?") ? `&client_id=${client_id}` : `?client_id=${client_id}`
             try {
-                return await request(url + connect, {headers})
-                    .then(r => r.body.json())
-                    .then(r => (<{url: string}>r).url)
+                return await fetch(url + connect, {headers}).then(r => r.json()).then(r => r.url)
             } catch {
                 return null
             }
@@ -144,9 +139,7 @@ export class Util {
         const headers = this.api.headers
         const client_id = await this.api.getClientId()
         const connect = transcoding.url.includes("?") ? `&client_id=${client_id}` : `?client_id=${client_id}`
-        const m3uLink = await request(transcoding.url + connect, {headers: this.api.headers})
-            .then(r => r.body.json())
-            .then(r => (<{url: string }>r).url)
+        const m3uLink = await fetch(transcoding.url + connect, {headers: this.api.headers}).then(r => r.json()).then(r => r.url)
         const destDir = path.join(__dirname, `tmp_${temp++}`)
         if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, {recursive: true})
         const output = path.join(destDir, `out.${transcoding.type}`)
@@ -160,11 +153,11 @@ export class Util {
                 return this.m3uReadableStream(trackResolvable)
             }
         } else {
-            const m3u = await request(m3uLink, {headers}).then(r => r.body.text())
+            const m3u = await fetch(m3uLink, {headers}).then(r => r.text())
             const urls = m3u.match(/(http).*?(?=\s)/gm)
             const chunks: string[] = []
             for (let i = 0; i < urls.length; i++) {
-                const arrayBuffer = await request(urls[i], {headers}).then(r => r.body.arrayBuffer())
+                const arrayBuffer = await fetch(urls[i], {headers}).then(r => r.arrayBuffer())
                 const chunkPath = path.join(destDir, `${i}.${transcoding.type}`)
                 fs.writeFileSync(chunkPath, Buffer.from(arrayBuffer))
                 chunks.push(chunkPath)
@@ -174,6 +167,20 @@ export class Util {
         const stream: NodeJS.ReadableStream = Readable.from(fs.readFileSync(output))
         Util.removeDirectory(destDir)
         return {stream, type: transcoding.type}
+    }
+
+    private webToNodeStream = (webStream: ReadableStream<Uint8Array>) => {
+        const reader = webStream.getReader()
+        return new Readable({
+          async read() {
+            const { done, value } = await reader.read()
+            if (done) {
+              this.push(null)
+            } else {
+              this.push(value)
+            }
+          }
+        })
     }
 
     /**
@@ -193,7 +200,7 @@ export class Util {
             const transcoding = transcodings[0]
             const url = await this.getStreamLink(transcoding)
             const headers = this.api.headers
-            const stream = await request(url, {headers}).then((r) => r.body)
+            const stream = await fetch(url, {headers}).then((r) => this.webToNodeStream(r.body))
             const type = transcoding.format.mime_type.startsWith('audio/mp4; codecs="mp4a') ? "m4a" : "mp3"
             result = {stream, type}
         }
@@ -213,22 +220,22 @@ export class Util {
     public downloadTrack = async (trackResolvable: string | SoundcloudTrack, dest?: string) => {
         const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g
         if (!dest) dest = "./"
-        if (!fs.existsSync(dest)) fs.mkdirSync(dest, {recursive: true})
+        const folder = path.extname(dest) ? path.dirname(dest) : dest
+        if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
         const track = await this.resolveTrack(trackResolvable)
     
         if (track.downloadable === true) {
             try {
                 const downloadObj = await this.api.getV2(`/tracks/${track.id}/download`) as any
-                const result = await request(downloadObj.redirectUri)
-
+                const result = await fetch(downloadObj.redirectUri)
                 // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
                 // what the fuck soundcloud users
 
                 track.title = sanitize(track.title)
                 if(track.title.length > 50) track.title = track.title.slice(0, 50) + "..."
-
-                dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(disallowedCharactersRegex, "")}.${result.headers["x-amz-meta-file-type"]}`)
-                const arrayBuffer = await result.body.arrayBuffer() as any
+                
+                dest = path.extname(dest) ? dest : path.join(dest, `${track.title.replace(/[\\/:*?\"<>|]/g, "")}.${result.headers["x-amz-meta-file-type"]}`)
+                const arrayBuffer = await result.arrayBuffer() as any
                 fs.writeFileSync(dest, Buffer.from(arrayBuffer, "binary"))
                 return dest
             } catch {
@@ -286,8 +293,8 @@ export class Util {
     public streamTrack = async (trackResolvable: string | SoundcloudTrack): Promise<NodeJS.ReadableStream> => {
         const url = await this.streamLink(trackResolvable, "progressive")
         if (!url) return this.m3uReadableStream(trackResolvable).then(r => r.stream)
-        const readable = await request(url, {headers: this.api.headers}).then((r) => r.body)
-        return readable
+        const readable = await fetch(url, {headers: this.api.headers}).then((r) => r.body)
+        return this.webToNodeStream(readable)
     }
 
     /**
@@ -305,7 +312,7 @@ export class Util {
         const client_id = await this.api.getClientId()
         const url = `${artwork}?client_id=${client_id}`
         if (noDL) return url
-        const arrayBuffer = await request(url).then(r => r.body.arrayBuffer())
+        const arrayBuffer = await fetch(url).then(r => r.arrayBuffer())
         fs.writeFileSync(dest, Buffer.from(arrayBuffer))
         return dest
     }
