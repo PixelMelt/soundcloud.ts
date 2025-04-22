@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -45,15 +45,15 @@ var child_process_1 = require("child_process");
 var sanitize_filename_ts_1 = require("sanitize-filename-ts");
 var axios_1 = require("axios");
 var temp = 0;
-var FFMPEG = { checked: false, path: "" };
+var FFMPEG = { checked: false, path: '' };
 var SOURCES = [
     function () {
         var _a;
-        var ffmpeg = require("ffmpeg-static");
+        var ffmpeg = require('ffmpeg-static');
         return (_a = ffmpeg === null || ffmpeg === void 0 ? void 0 : ffmpeg.path) !== null && _a !== void 0 ? _a : ffmpeg;
     },
-    function () { return "ffmpeg"; },
-    function () { return "./ffmpeg"; },
+    function () { return 'ffmpeg'; },
+    function () { return './ffmpeg'; },
 ];
 var Util = /** @class */ (function () {
     function Util(api) {
@@ -67,7 +67,7 @@ var Util = /** @class */ (function () {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        if (!(typeof trackResolvable === "string")) return [3 /*break*/, 2];
+                        if (!(typeof trackResolvable === 'string')) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.tracks.get(trackResolvable)];
                     case 1:
                         _a = _b.sent();
@@ -86,9 +86,7 @@ var Util = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _a.sent();
-                        transcodings = track.media.transcodings.sort(function (t) {
-                            return t.quality === "hq" ? -1 : 1;
-                        });
+                        transcodings = track.media.transcodings.sort(function (t) { return (t.quality === 'hq' ? -1 : 1); });
                         if (!protocol)
                             return [2 /*return*/, transcodings];
                         return [2 /*return*/, transcodings.filter(function (t) { return t.format.protocol === protocol; })];
@@ -107,9 +105,7 @@ var Util = /** @class */ (function () {
                     case 1:
                         client_id = _a.sent();
                         headers = this.api.headers;
-                        connect = url.includes("?")
-                            ? "&client_id=".concat(client_id)
-                            : "?client_id=".concat(client_id);
+                        connect = url.includes('?') ? "&client_id=".concat(client_id) : "?client_id=".concat(client_id);
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 4, , 10]);
@@ -119,13 +115,11 @@ var Util = /** @class */ (function () {
                         return [2 /*return*/, response.data.url];
                     case 4:
                         error_1 = _a.sent();
-                        console.error("Error fetching stream link (attempt 1):", error_1);
+                        console.error('Error fetching stream link (attempt 1):', error_1);
                         return [4 /*yield*/, this.api.getClientId(true)];
                     case 5:
                         client_id = _a.sent();
-                        connect = url.includes("?")
-                            ? "&client_id=".concat(client_id)
-                            : "?client_id=".concat(client_id);
+                        connect = url.includes('?') ? "&client_id=".concat(client_id) : "?client_id=".concat(client_id);
                         _a.label = 6;
                     case 6:
                         _a.trys.push([6, 8, , 9]);
@@ -135,7 +129,7 @@ var Util = /** @class */ (function () {
                         return [2 /*return*/, response.data.url];
                     case 8:
                         error2_1 = _a.sent();
-                        console.error("Error fetching stream link (attempt 2):", error2_1);
+                        console.error('Error fetching stream link (attempt 2):', error2_1);
                         return [2 /*return*/, null];
                     case 9: return [3 /*break*/, 10];
                     case 10: return [2 /*return*/];
@@ -168,16 +162,16 @@ var Util = /** @class */ (function () {
                     case 0:
                         outStream = fs.createWriteStream(outputFile);
                         ret = new Promise(function (resolve, reject) {
-                            outStream.on("finish", resolve);
-                            outStream.on("error", reject);
+                            outStream.on('finish', resolve);
+                            outStream.on('error', reject);
                         });
                         _loop_1 = function (file) {
                             return __generator(this, function (_b) {
                                 switch (_b.label) {
                                     case 0: return [4 /*yield*/, new Promise(function (resolve, reject) {
                                             fs.createReadStream(file)
-                                                .on("error", reject)
-                                                .on("end", resolve)
+                                                .on('error', reject)
+                                                .on('end', resolve)
                                                 .pipe(outStream, { end: false });
                                         })];
                                     case 1:
@@ -212,16 +206,16 @@ var Util = /** @class */ (function () {
                 var fn = SOURCES_1[_i];
                 try {
                     var command = fn();
-                    var result = (0, child_process_1.spawnSync)(command, ["-h"], {
+                    var result = (0, child_process_1.spawnSync)(command, ['-h'], {
                         windowsHide: true,
                         shell: true,
-                        encoding: "utf-8",
+                        encoding: 'utf-8',
                     });
                     if (result.error)
                         throw result.error;
                     if (result.stderr && !result.stdout)
                         throw new Error(result.stderr);
-                    var output = result.output.filter(Boolean).join("\n");
+                    var output = result.output.filter(Boolean).join('\n');
                     var version = (_a = /version (.+) Copyright/im.exec(output)) === null || _a === void 0 ? void 0 : _a[1];
                     if (!version)
                         throw new Error("Malformed FFmpeg command using ".concat(command));
@@ -231,8 +225,8 @@ var Util = /** @class */ (function () {
             }
             FFMPEG.checked = true;
             if (!FFMPEG.path) {
-                console.warn("FFmpeg not found, please install ffmpeg-static or add ffmpeg to your PATH.");
-                console.warn("Download m4a (hq) is disabled, use mp3 (sq) instead.");
+                console.warn('FFmpeg not found, please install ffmpeg-static or add ffmpeg to your PATH.');
+                console.warn('Download m4a (hq) is disabled, use mp3 (sq) instead.');
             }
             return true;
         };
@@ -242,7 +236,7 @@ var Util = /** @class */ (function () {
             }
             catch (e) {
                 console.error(e);
-                throw "FFmpeg error";
+                throw 'FFmpeg error';
             }
         };
         /**
@@ -255,34 +249,31 @@ var Util = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _a.sent();
-                        return [4 /*yield*/, this.sortTranscodings(track, "hls")];
+                        return [4 /*yield*/, this.sortTranscodings(track, 'hls')];
                     case 2:
                         transcodings = _a.sent();
                         if (!transcodings.length)
-                            throw "No transcodings found";
+                            throw 'No transcodings found';
                         for (_i = 0, transcodings_1 = transcodings; _i < transcodings_1.length; _i++) {
                             t = transcodings_1[_i];
-                            if (t.format.mime_type.startsWith('audio/mp4; codecs="mp4a') &&
-                                this.checkFFmpeg()) {
-                                transcoding = { url: t.url, type: "m4a" };
+                            if (t.format.mime_type.startsWith('audio/mp4; codecs="mp4a') && this.checkFFmpeg()) {
+                                transcoding = { url: t.url, type: 'm4a' };
                                 break;
                             }
-                            if (t.format.mime_type.startsWith("audio/mpeg")) {
-                                transcoding = { url: t.url, type: "mp3" };
+                            if (t.format.mime_type.startsWith('audio/mpeg')) {
+                                transcoding = { url: t.url, type: 'mp3' };
                                 break;
                             }
                         }
                         if (!transcoding) {
-                            console.log("Support for this track is not yet implemented, please open an issue on GitHub.\n\n            URL: ".concat(track.permalink_url, ".\n\n            Type: ").concat(track.media.transcodings
-                                .map(function (t) { return t.format.mime_type; })
-                                .join(" | ")));
-                            throw "No supported transcodings found";
+                            console.log("Support for this track is not yet implemented, please open an issue on GitHub.\n\n            URL: ".concat(track.permalink_url, ".\n\n            Type: ").concat(track.media.transcodings.map(function (t) { return t.format.mime_type; }).join(' | ')));
+                            throw 'No supported transcodings found';
                         }
                         headers = this.api.headers;
                         return [4 /*yield*/, this.api.getClientId()];
                     case 3:
                         client_id = _a.sent();
-                        connect = transcoding.url.includes("?")
+                        connect = transcoding.url.includes('?')
                             ? "&client_id=".concat(client_id)
                             : "?client_id=".concat(client_id);
                         _a.label = 4;
@@ -295,34 +286,34 @@ var Util = /** @class */ (function () {
                         return [3 /*break*/, 7];
                     case 6:
                         error_2 = _a.sent();
-                        console.error("Error fetching M3U link:", error_2);
-                        throw "Failed to fetch M3U link";
+                        console.error('Error fetching M3U link:', error_2);
+                        throw 'Failed to fetch M3U link';
                     case 7:
                         destDir = path.join(__dirname, "tmp_".concat(temp++));
                         if (!fs.existsSync(destDir))
                             fs.mkdirSync(destDir, { recursive: true });
                         output = path.join(destDir, "out.".concat(transcoding.type));
-                        if (!(transcoding.type === "m4a")) return [3 /*break*/, 8];
+                        if (!(transcoding.type === 'm4a')) return [3 /*break*/, 8];
                         try {
                             this.spawnFFmpeg([
-                                "-y",
-                                "-loglevel",
-                                "warning",
-                                "-i",
+                                '-y',
+                                '-loglevel',
+                                'warning',
+                                '-i',
                                 m3uLink,
-                                "-bsf:a",
-                                "aac_adtstoasc",
-                                "-vcodec",
-                                "copy",
-                                "-c",
-                                "copy",
-                                "-crf",
-                                "50",
+                                '-bsf:a',
+                                'aac_adtstoasc',
+                                '-vcodec',
+                                'copy',
+                                '-c',
+                                'copy',
+                                '-crf',
+                                '50',
                                 output,
                             ]);
                         }
                         catch (_b) {
-                            console.warn("Failed to transmux to m4a (hq), download as mp3 (hq) instead.");
+                            console.warn('Failed to transmux to m4a (hq), download as mp3 (hq) instead.');
                             FFMPEG.path = null;
                             return [2 /*return*/, this.m3uReadableStream(trackResolvable)];
                         }
@@ -334,7 +325,7 @@ var Util = /** @class */ (function () {
                         _a.trys.push([9, 11, , 12]);
                         return [4 /*yield*/, axios_1.default.get(m3uLink, {
                                 headers: headers,
-                                responseType: "text",
+                                responseType: 'text',
                             })];
                     case 10:
                         response = _a.sent();
@@ -342,14 +333,14 @@ var Util = /** @class */ (function () {
                         return [3 /*break*/, 12];
                     case 11:
                         error_3 = _a.sent();
-                        console.error("Error fetching M3U content:", error_3);
+                        console.error('Error fetching M3U content:', error_3);
                         Util.removeDirectory(destDir); // Clean up temp directory
-                        throw "Failed to fetch M3U content";
+                        throw 'Failed to fetch M3U content';
                     case 12:
                         urls = m3u.match(/(http).*?(?=\s)/gm);
                         if (!urls) {
                             Util.removeDirectory(destDir); // Clean up temp directory
-                            throw "Could not parse URLs from M3U";
+                            throw 'Could not parse URLs from M3U';
                         }
                         chunks = [];
                         i = 0;
@@ -361,7 +352,7 @@ var Util = /** @class */ (function () {
                         _a.trys.push([14, 16, , 17]);
                         return [4 /*yield*/, axios_1.default.get(urls[i], {
                                 headers: headers,
-                                responseType: "arraybuffer",
+                                responseType: 'arraybuffer',
                             })];
                     case 15:
                         response = _a.sent();
@@ -402,8 +393,8 @@ var Util = /** @class */ (function () {
                         track = _a.sent();
                         title = (0, sanitize_filename_ts_1.sanitize)(title);
                         if (title.length > 50)
-                            title = title.slice(0, 50) + "...";
-                        return [4 /*yield*/, this.sortTranscodings(track, "progressive")];
+                            title = title.slice(0, 50) + '...';
+                        return [4 /*yield*/, this.sortTranscodings(track, 'progressive')];
                     case 2:
                         transcodings = _a.sent();
                         if (!!transcodings.length) return [3 /*break*/, 4];
@@ -417,14 +408,14 @@ var Util = /** @class */ (function () {
                     case 5:
                         url = _a.sent();
                         if (!url)
-                            throw new Error("Could not get stream link for progressive download");
+                            throw new Error('Could not get stream link for progressive download');
                         headers = this.api.headers;
                         _a.label = 6;
                     case 6:
                         _a.trys.push([6, 8, , 11]);
                         return [4 /*yield*/, axios_1.default.get(url, {
                                 headers: headers,
-                                responseType: "stream",
+                                responseType: 'stream',
                             })];
                     case 7:
                         response = _a.sent();
@@ -432,7 +423,7 @@ var Util = /** @class */ (function () {
                         return [3 /*break*/, 11];
                     case 8:
                         error_5 = _a.sent();
-                        console.error("Error fetching progressive stream:", error_5);
+                        console.error('Error fetching progressive stream:', error_5);
                         return [4 /*yield*/, this.m3uReadableStream(trackResolvable)];
                     case 9:
                         // Attempt m3u stream as fallback
@@ -446,26 +437,24 @@ var Util = /** @class */ (function () {
                         writeStream_1 = fs.createWriteStream(fileName_1);
                         stream_2.pipe(writeStream_1);
                         return [4 /*yield*/, new Promise(function (resolve, reject) {
-                                stream_2.on("end", resolve);
-                                stream_2.on("error", reject); // Add error handling for the stream itself
+                                stream_2.on('end', resolve);
+                                stream_2.on('error', reject); // Add error handling for the stream itself
                             })];
                     case 10:
                         _a.sent();
                         return [2 /*return*/, fileName_1];
                     case 11:
                         type = transcoding.format.mime_type.startsWith('audio/mp4; codecs="mp4a')
-                            ? "m4a"
-                            : "mp3";
+                            ? 'm4a'
+                            : 'mp3';
                         result = { stream: stream_2, type: type };
                         _a.label = 12;
                     case 12:
                         stream = result.stream;
-                        fileName = path.extname(dest)
-                            ? dest
-                            : path.join(dest, "".concat(title, ".").concat(result.type));
+                        fileName = path.extname(dest) ? dest : path.join(dest, "".concat(title, ".").concat(result.type));
                         writeStream = fs.createWriteStream(fileName);
                         stream.pipe(writeStream);
-                        return [4 /*yield*/, new Promise(function (resolve) { return stream.on("end", function () { return resolve(); }); })];
+                        return [4 /*yield*/, new Promise(function (resolve) { return stream.on('end', function () { return resolve(); }); })];
                     case 13:
                         _a.sent();
                         return [2 /*return*/, fileName];
@@ -482,14 +471,14 @@ var Util = /** @class */ (function () {
                     case 0:
                         disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
                         if (!dest)
-                            dest = "./";
+                            dest = './';
                         folder = path.extname(dest) ? path.dirname(dest) : dest;
                         if (!fs.existsSync(folder))
                             fs.mkdirSync(folder, { recursive: true });
                         return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _a.sent();
-                        if (!(track.downloadable === true)) return [3 /*break*/, 13];
+                        if (!(track.downloadable === true && track.has_downloads_left === true)) return [3 /*break*/, 13];
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 11, , 12]);
@@ -501,7 +490,7 @@ var Util = /** @class */ (function () {
                     case 4:
                         _a.trys.push([4, 6, , 10]);
                         return [4 /*yield*/, axios_1.default.get(downloadObj.redirectUri, {
-                                responseType: "arraybuffer",
+                                responseType: 'arraybuffer',
                                 maxRedirects: 0,
                                 validateStatus: function (status) { return status >= 200 && status < 400; },
                             })];
@@ -515,27 +504,27 @@ var Util = /** @class */ (function () {
                             error_6.response.status === 302 &&
                             error_6.response.headers.location)) return [3 /*break*/, 8];
                         return [4 /*yield*/, axios_1.default.get(error_6.response.headers.location, {
-                                responseType: "arraybuffer",
+                                responseType: 'arraybuffer',
                             })];
                     case 7:
                         result = _a.sent();
                         return [3 /*break*/, 9];
                     case 8:
-                        console.error("Error fetching downloadable track (initial/redirect):", error_6);
+                        console.error('Error fetching downloadable track (initial/redirect):', error_6);
                         // Fallback to streaming if direct download fails
-                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)];
+                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ''), dest)];
                     case 9: return [3 /*break*/, 10];
                     case 10:
                         // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
                         // what the fuck soundcloud users
                         track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
                         if (track.title.length > 50)
-                            track.title = track.title.slice(0, 50) + "...";
+                            track.title = track.title.slice(0, 50) + '...';
                         dest = path.extname(dest)
                             ? dest
-                            : path.join(dest, "".concat(track.title.replace(disallowedCharactersRegex, ""), ".").concat(
+                            : path.join(dest, "".concat(track.title.replace(disallowedCharactersRegex, ''), ".").concat(
                             // Axios response headers are lowercase
-                            result.headers["x-amz-meta-file-type"] || "mp3" // Provide a default extension
+                            result.headers['x-amz-meta-file-type'] || 'mp3' // Provide a default extension
                             ));
                         arrayBuffer = result.data;
                         fs.writeFileSync(dest, Buffer.from(arrayBuffer)); // No 'binary' needed with Buffer.from(ArrayBuffer)
@@ -543,10 +532,10 @@ var Util = /** @class */ (function () {
                     case 11:
                         e_1 = _a.sent();
                         // Catch specific errors if needed, or general catch
-                        console.error("Error processing direct download:", e_1);
-                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)];
+                        console.error('Error processing direct download:', e_1);
+                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ''), dest)];
                     case 12: return [3 /*break*/, 14];
-                    case 13: return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ""), dest)];
+                    case 13: return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ''), dest)];
                     case 14: return [2 /*return*/];
                 }
             });
@@ -633,7 +622,7 @@ var Util = /** @class */ (function () {
             var url, stream, response, error_7, stream;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.streamLink(trackResolvable, "progressive")];
+                    case 0: return [4 /*yield*/, this.streamLink(trackResolvable, 'progressive')];
                     case 1:
                         url = _a.sent();
                         if (!!url) return [3 /*break*/, 3];
@@ -645,14 +634,14 @@ var Util = /** @class */ (function () {
                         _a.trys.push([3, 5, , 7]);
                         return [4 /*yield*/, axios_1.default.get(url, {
                                 headers: this.api.headers,
-                                responseType: "stream",
+                                responseType: 'stream',
                             })];
                     case 4:
                         response = _a.sent();
                         return [2 /*return*/, response.data];
                     case 5:
                         error_7 = _a.sent();
-                        console.error("Error fetching progressive stream for streamTrack:", error_7);
+                        console.error('Error fetching progressive stream for streamTrack:', error_7);
                         return [4 /*yield*/, this.m3uReadableStream(trackResolvable)];
                     case 6:
                         stream = (_a.sent()).stream;
@@ -671,7 +660,7 @@ var Util = /** @class */ (function () {
                     case 0:
                         disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
                         if (!dest)
-                            dest = "./";
+                            dest = './';
                         folder = dest;
                         if (!fs.existsSync(folder))
                             fs.mkdirSync(folder, { recursive: true });
@@ -679,9 +668,9 @@ var Util = /** @class */ (function () {
                     case 1:
                         track = _a.sent();
                         artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url)
-                            .replace(".jpg", ".png")
-                            .replace("-large", "-t500x500");
-                        title = track.title.replace(disallowedCharactersRegex, "");
+                            .replace('.jpg', '.png')
+                            .replace('-large', '-t500x500');
+                        title = track.title.replace(disallowedCharactersRegex, '');
                         dest = path.extname(dest) ? dest : path.join(folder, "".concat(title, ".png"));
                         return [4 /*yield*/, this.api.getClientId()];
                     case 2:
@@ -692,14 +681,14 @@ var Util = /** @class */ (function () {
                         _a.label = 3;
                     case 3:
                         _a.trys.push([3, 5, , 6]);
-                        return [4 /*yield*/, axios_1.default.get(url, { responseType: "arraybuffer" })];
+                        return [4 /*yield*/, axios_1.default.get(url, { responseType: 'arraybuffer' })];
                     case 4:
                         response = _a.sent();
                         fs.writeFileSync(dest, Buffer.from(response.data));
                         return [2 /*return*/, dest];
                     case 5:
                         error_8 = _a.sent();
-                        console.error("Error downloading song cover:", error_8);
+                        console.error('Error downloading song cover:', error_8);
                         // Decide how to handle the error, e.g., throw, return null, or return the path anyway?
                         // For now, let's re-throw or return null/undefined based on expected behavior.
                         // Throwing seems more appropriate if the download failed.

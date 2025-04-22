@@ -1,5 +1,11 @@
-import type { SoundcloudTrack } from "../types";
-import { API } from "../API";
+/// <reference types="mocha" />
+/// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="node" />
+import type { SoundcloudTrack } from '../types';
+import { API } from '../API';
 export declare class Util {
     private readonly api;
     private readonly tracks;
@@ -12,7 +18,7 @@ export declare class Util {
     /**
      * Gets the direct streaming link of a track.
      */
-    streamLink: (trackResolvable: string | SoundcloudTrack, protocol?: "progressive" | "hls") => Promise<any>;
+    streamLink: (trackResolvable: string | SoundcloudTrack, protocol?: 'progressive' | 'hls') => Promise<any>;
     private readonly mergeFiles;
     private readonly checkFFmpeg;
     private readonly spawnFFmpeg;
