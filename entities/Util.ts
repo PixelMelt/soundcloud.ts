@@ -261,7 +261,10 @@ export class Util {
 		} else {
 			const transcoding = transcodings[0];
 			const url = await this.getStreamLink(transcoding);
-			if (!url) throw new Error('Could not get stream link for progressive download');
+			if (!url) {
+				console.log(transcodings, url);
+				throw new Error('Could not get stream link for progressive download');
+			}
 			const headers = this.api.headers;
 			let stream: NodeJS.ReadableStream;
 			try {

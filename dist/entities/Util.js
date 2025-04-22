@@ -407,8 +407,10 @@ var Util = /** @class */ (function () {
                         return [4 /*yield*/, this.getStreamLink(transcoding)];
                     case 5:
                         url = _a.sent();
-                        if (!url)
+                        if (!url) {
+                            console.log(transcodings, url);
                             throw new Error('Could not get stream link for progressive download');
+                        }
                         headers = this.api.headers;
                         _a.label = 6;
                     case 6:
