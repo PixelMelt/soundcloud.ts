@@ -1,4 +1,4 @@
-import type { SoundcloudTrack } from "./TrackTypes"
+import type {SoundcloudTrack} from "./TrackTypes"
 
 export interface SoundcloudWidget {
     bind<Value extends SoundcloudEventValue>(
@@ -40,9 +40,12 @@ export interface SoundcloudAudioEvents {
     SEEK: "seek"
 }
 export type SoundcloudAudioEventKey = keyof SoundcloudAudioEvents
+
 export type SoundcloudAudioEventValue =
     SoundcloudAudioEvents[SoundcloudAudioEventKey]
+
 export type SoundcloudAudioEventCallback = (data: SoundcloudAudioData) => void
+
 export interface SoundcloudAudioData {
     relativePosition: number
     loadProgress: number
@@ -62,10 +65,13 @@ export type SoundcloudUIEventValue = SoundcloudUIEvents[SoundcloudUIEventKey]
 export type SoundcloudUIEventCallback = () => void
 
 export type SoundcloudEventKey = SoundcloudAudioEventKey | SoundcloudUIEventKey
+
 export type SoundcloudEventValue =
     | SoundcloudAudioEventValue
     | SoundcloudUIEventValue
+
 export type SoundcloudEvents = SoundcloudAudioEvents & SoundcloudUIEvents
+
 export type SoundcloudEventCallback<Value extends SoundcloudEventValue> =
     Value extends SoundcloudAudioEventValue
         ? SoundcloudAudioEventCallback
