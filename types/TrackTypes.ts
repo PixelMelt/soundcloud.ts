@@ -87,6 +87,14 @@ export interface SoundcloudTrack {
     permalink_url: string
     user: SoundcloudUser
     playback_count: number
+
+    _resource_id?: number | null
+    _resource_type?: string | null
+    caption: string | null
+    playable?: boolean | null
+    station_urn?: string | null
+    station_permalink?: string | null
+    track_authorization?: string | null
 }
 export interface SoundcloudTrackSearch extends SoundcloudSearch {
     collection: SoundcloudTrack[]
