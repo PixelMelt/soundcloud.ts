@@ -20,3 +20,4 @@ __exportStar(require("./CommentTypes"), exports);
 __exportStar(require("./APITypes"), exports);
 __exportStar(require("./PlaylistTypes"), exports);
 __exportStar(require("./MeTypes"), exports);
+__exportStar(require("./WidgetTypes"), exports);

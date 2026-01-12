@@ -33,7 +33,11 @@ export declare class Util {
     /**
      * Downloads a track on Soundcloud.
      */
-    downloadTrack: (trackResolvable: string | SoundcloudTrack, dest?: string) => Promise<string>;
+    downloadTrack: (trackResolvable: string | SoundcloudTrack, dest?: string, metadata?: boolean) => Promise<string>;
+    /**
+     * Writes ID3 metadata to a downloaded track.
+     */
+    private readonly writeMetadata;
     /**
      * Downloads an array of tracks.
      */

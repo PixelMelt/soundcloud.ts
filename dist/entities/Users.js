@@ -45,101 +45,6 @@ var Users = /** @class */ (function () {
         this.api = api;
         this.resolve = new index_1.Resolve(this.api);
         /**
-         * Gets a user's followers.
-         */
-        this.following = function (userResolvable, limit) { return __awaiter(_this, void 0, void 0, function () {
-            var userID, response, followers, nextHref, _loop_1, this_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
-                    case 1:
-                        userID = _a.sent();
-                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/followings"), {
-                                limit: 50,
-                                offset: 0,
-                            })];
-                    case 2:
-                        response = (_a.sent());
-                        followers = [];
-                        nextHref = response.next_href;
-                        _loop_1 = function () {
-                            var url, params;
-                            return __generator(this, function (_b) {
-                                switch (_b.label) {
-                                    case 0:
-                                        followers.push.apply(followers, response.collection);
-                                        url = new url_1.URL(nextHref);
-                                        params = {};
-                                        url.searchParams.forEach(function (value, key) { return (params[key] = value); });
-                                        return [4 /*yield*/, this_1.api.getURL(url.origin + url.pathname, params)];
-                                    case 1:
-                                        response = _b.sent();
-                                        nextHref = response.next_href;
-                                        return [2 /*return*/];
-                                }
-                            });
-                        };
-                        this_1 = this;
-                        _a.label = 3;
-                    case 3:
-                        if (!(nextHref && (!limit || followers.length < limit))) return [3 /*break*/, 5];
-                        return [5 /*yield**/, _loop_1()];
-                    case 4:
-                        _a.sent();
-                        return [3 /*break*/, 3];
-                    case 5: return [2 /*return*/, followers];
-                }
-            });
-        }); };
-        /**
-         * Gets all the albums by the user using Soundcloud v2 API.
-         */
-        this.albums = function (userResolvable) { return __awaiter(_this, void 0, void 0, function () {
-            var userID, params, response, nextHref, _loop_2, this_2;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
-                    case 1:
-                        userID = _a.sent();
-                        params = {
-                            limit: 10,
-                            offset: 0,
-                        };
-                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/albums"), params)];
-                    case 2:
-                        response = (_a.sent());
-                        nextHref = response.next_href;
-                        _loop_2 = function () {
-                            var url, params_1, nextPage;
-                            var _b;
-                            return __generator(this, function (_c) {
-                                switch (_c.label) {
-                                    case 0:
-                                        url = new url_1.URL(nextHref);
-                                        params_1 = {};
-                                        url.searchParams.forEach(function (value, key) { return (params_1[key] = value); });
-                                        return [4 /*yield*/, this_2.api.getURL(url.origin + url.pathname, params_1)];
-                                    case 1:
-                                        nextPage = (_c.sent());
-                                        (_b = response.collection).push.apply(_b, nextPage.collection);
-                                        nextHref = nextPage.next_href;
-                                        return [2 /*return*/];
-                                }
-                            });
-                        };
-                        this_2 = this;
-                        _a.label = 3;
-                    case 3:
-                        if (!nextHref) return [3 /*break*/, 5];
-                        return [5 /*yield**/, _loop_2()];
-                    case 4:
-                        _a.sent();
-                        return [3 /*break*/, 3];
-                    case 5: return [2 /*return*/, response.collection];
-                }
-            });
-        }); };
-        /**
          * Searches for users using the v2 API.
          */
         this.search = function (params) { return __awaiter(_this, void 0, void 0, function () {
@@ -174,13 +79,104 @@ var Users = /** @class */ (function () {
          * Gets all the tracks by the user using Soundcloud v2 API.
          */
         this.tracks = function (userResolvable) { return __awaiter(_this, void 0, void 0, function () {
-            var userID, response, nextHref, _loop_3, this_3;
+            var userID, response, nextHref, _loop_1, this_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
                     case 1:
                         userID = _a.sent();
                         return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/tracks"))];
+                    case 2:
+                        response = (_a.sent());
+                        nextHref = response.next_href;
+                        _loop_1 = function () {
+                            var url, params, nextPage;
+                            var _b;
+                            return __generator(this, function (_c) {
+                                switch (_c.label) {
+                                    case 0:
+                                        url = new url_1.URL(nextHref);
+                                        params = {};
+                                        url.searchParams.forEach(function (value, key) { return (params[key] = value); });
+                                        return [4 /*yield*/, this_1.api.getURL(url.origin + url.pathname, params)];
+                                    case 1:
+                                        nextPage = (_c.sent());
+                                        (_b = response.collection).push.apply(_b, nextPage.collection);
+                                        nextHref = nextPage.next_href;
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_1 = this;
+                        _a.label = 3;
+                    case 3:
+                        if (!nextHref) return [3 /*break*/, 5];
+                        return [5 /*yield**/, _loop_1()];
+                    case 4:
+                        _a.sent();
+                        return [3 /*break*/, 3];
+                    case 5: return [2 /*return*/, response.collection];
+                }
+            });
+        }); };
+        /**
+         * Gets all of a users liked tracks.
+         */
+        this.likes = function (userResolvable, limit) { return __awaiter(_this, void 0, void 0, function () {
+            var userID, response, tracks, nextHref, _loop_2, this_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
+                    case 1:
+                        userID = _a.sent();
+                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/likes"), {
+                                limit: 50,
+                                offset: 0,
+                            })];
+                    case 2:
+                        response = (_a.sent());
+                        tracks = [];
+                        nextHref = response.next_href;
+                        _loop_2 = function () {
+                            var url, params;
+                            return __generator(this, function (_b) {
+                                switch (_b.label) {
+                                    case 0:
+                                        tracks.push.apply(tracks, response.collection.map(function (r) { return r.track; }));
+                                        url = new url_1.URL(nextHref);
+                                        params = {};
+                                        url.searchParams.forEach(function (value, key) { return (params[key] = value); });
+                                        return [4 /*yield*/, this_2.api.getURL(url.origin + url.pathname, params)];
+                                    case 1:
+                                        response = _b.sent();
+                                        nextHref = response.next_href;
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_2 = this;
+                        _a.label = 3;
+                    case 3:
+                        if (!(nextHref && (!limit || tracks.length < limit))) return [3 /*break*/, 5];
+                        return [5 /*yield**/, _loop_2()];
+                    case 4:
+                        _a.sent();
+                        return [3 /*break*/, 3];
+                    case 5: return [2 /*return*/, tracks];
+                }
+            });
+        }); };
+        /**
+         * Gets all the playlists by the user using Soundcloud v2 API.
+         */
+        this.playlists = function (userResolvable) { return __awaiter(_this, void 0, void 0, function () {
+            var userID, response, nextHref, _loop_3, this_3;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
+                    case 1:
+                        userID = _a.sent();
+                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/playlists"))];
                     case 2:
                         response = (_a.sent());
                         nextHref = response.next_href;
@@ -215,36 +211,37 @@ var Users = /** @class */ (function () {
             });
         }); };
         /**
-         * Gets all of a users liked tracks.
+         * Gets all the albums by the user using Soundcloud v2 API.
          */
-        this.likes = function (userResolvable, limit) { return __awaiter(_this, void 0, void 0, function () {
-            var userID, response, tracks, nextHref, _loop_4, this_4;
+        this.albums = function (userResolvable) { return __awaiter(_this, void 0, void 0, function () {
+            var userID, params, response, nextHref, _loop_4, this_4;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
                     case 1:
                         userID = _a.sent();
-                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/likes"), {
-                                limit: 50,
-                                offset: 0,
-                            })];
+                        params = {
+                            limit: 10,
+                            offset: 0,
+                        };
+                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/albums"), params)];
                     case 2:
                         response = (_a.sent());
-                        tracks = [];
                         nextHref = response.next_href;
                         _loop_4 = function () {
-                            var url, params;
-                            return __generator(this, function (_b) {
-                                switch (_b.label) {
+                            var url, params_1, nextPage;
+                            var _b;
+                            return __generator(this, function (_c) {
+                                switch (_c.label) {
                                     case 0:
-                                        tracks.push.apply(tracks, response.collection.map(function (r) { return r.track; }));
                                         url = new url_1.URL(nextHref);
-                                        params = {};
-                                        url.searchParams.forEach(function (value, key) { return (params[key] = value); });
-                                        return [4 /*yield*/, this_4.api.getURL(url.origin + url.pathname, params)];
+                                        params_1 = {};
+                                        url.searchParams.forEach(function (value, key) { return (params_1[key] = value); });
+                                        return [4 /*yield*/, this_4.api.getURL(url.origin + url.pathname, params_1)];
                                     case 1:
-                                        response = _b.sent();
-                                        nextHref = response.next_href;
+                                        nextPage = (_c.sent());
+                                        (_b = response.collection).push.apply(_b, nextPage.collection);
+                                        nextHref = nextPage.next_href;
                                         return [2 /*return*/];
                                 }
                             });
@@ -252,12 +249,59 @@ var Users = /** @class */ (function () {
                         this_4 = this;
                         _a.label = 3;
                     case 3:
-                        if (!(nextHref && (!limit || tracks.length < limit))) return [3 /*break*/, 5];
+                        if (!nextHref) return [3 /*break*/, 5];
                         return [5 /*yield**/, _loop_4()];
                     case 4:
                         _a.sent();
                         return [3 /*break*/, 3];
-                    case 5: return [2 /*return*/, tracks];
+                    case 5: return [2 /*return*/, response.collection];
+                }
+            });
+        }); };
+        /**
+         * Gets a user's following list.
+         */
+        this.following = function (userResolvable, limit) { return __awaiter(_this, void 0, void 0, function () {
+            var userID, response, followers, nextHref, _loop_5, this_5;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.resolve.get(userResolvable)];
+                    case 1:
+                        userID = _a.sent();
+                        return [4 /*yield*/, this.api.getV2("/users/".concat(userID, "/followings"), {
+                                limit: 50,
+                                offset: 0,
+                            })];
+                    case 2:
+                        response = (_a.sent());
+                        followers = [];
+                        nextHref = response.next_href;
+                        _loop_5 = function () {
+                            var url, params;
+                            return __generator(this, function (_b) {
+                                switch (_b.label) {
+                                    case 0:
+                                        followers.push.apply(followers, response.collection);
+                                        url = new url_1.URL(nextHref);
+                                        params = {};
+                                        url.searchParams.forEach(function (value, key) { return (params[key] = value); });
+                                        return [4 /*yield*/, this_5.api.getURL(url.origin + url.pathname, params)];
+                                    case 1:
+                                        response = _b.sent();
+                                        nextHref = response.next_href;
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_5 = this;
+                        _a.label = 3;
+                    case 3:
+                        if (!(nextHref && (!limit || followers.length < limit))) return [3 /*break*/, 5];
+                        return [5 /*yield**/, _loop_5()];
+                    case 4:
+                        _a.sent();
+                        return [3 /*break*/, 3];
+                    case 5: return [2 /*return*/, followers];
                 }
             });
         }); };

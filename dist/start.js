@@ -43,7 +43,7 @@ var soundcloud = new soundcloud_1.default();
     var result;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, soundcloud.util.downloadTrack("https://soundcloud.com/5tereomanjpn/aire-tea-timestereoman-remix", "./tracks/test.mp3")];
+            case 0: return [4 /*yield*/, soundcloud.util.downloadTrack("https://soundcloud.com/5tereomanjpn/aire-tea-timestereoman-remix", "./tracks")];
             case 1:
                 result = _a.sent();
                 console.log(result);

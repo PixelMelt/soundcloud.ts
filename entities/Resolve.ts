@@ -23,7 +23,7 @@ export class Resolve {
         ? data[data.length - 1].data[0].id
         : data[data.length - 2].data[0].id;
     }
-    return id;
+    return id as unknown as Promise<number>;
   };
 
   /**
@@ -46,6 +46,6 @@ export class Resolve {
       if (full) return resolved;
       id = resolved.id;
     }
-    return id;
+    return id as unknown as Promise<number>;
   };
 }

@@ -1,5 +1,5 @@
 import { API } from "./API";
-import { Apps, Comments, Me, Oembed, Playlists, Resolve, Tracks, Users, Util } from "./entities";
+import { Comments, Playlists, Resolve, Tracks, Users, Util } from "./entities";
 /**
  * The main class for interacting with the Soundcloud API.
  */
@@ -8,10 +8,7 @@ export declare class Soundcloud {
     static oauthToken?: string;
     static proxy?: string;
     api: API;
-    apps: Apps;
     comments: Comments;
-    me: Me;
-    oembed: Oembed;
     playlists: Playlists;
     resolve: Resolve;
     tracks: Tracks;

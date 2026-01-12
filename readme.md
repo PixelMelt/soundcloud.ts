@@ -1,6 +1,6 @@
 <div align="left">
   <p>
-    <a href="https://moebits.github.io/soundcloud.ts/"><img src="https://raw.githubusercontent.com/Moebits/soundcloud.ts/master/images/soundcloud.tslogo.gif" width="500" /></a>
+    <a href="https://moestash.github.io/soundcloud.ts/"><img src="https://raw.githubusercontent.com/moestash/soundcloud.ts/master/images/soundcloud.tslogo.gif" width="500" /></a>
   </p>
   <p>
     <a href="https://nodei.co/npm/soundcloud.ts/"><img src="https://nodei.co/npm/soundcloud.ts.png" /></a>
@@ -21,7 +21,7 @@ npm install soundcloud.ts
 ### Useful Links
 
 -   [**SoundCloud API Documentation**](https://developers.soundcloud.com/docs/api/reference)
--   [**Soundcloud.ts Documentation**](https://moebits.github.io/soundcloud.ts/)
+-   [**Soundcloud.ts Documentation**](https://moestash.github.io/soundcloud.ts/)
 
 ### Getting Started
 
@@ -155,9 +155,21 @@ export interface SoundcloudTrack {
     }
     title: string
     publisher_metadata: {
-        urn: string
-        contains_music: boolean
         id: number
+        urn: string
+        artist: string
+        album_title: string
+        contains_music: boolean
+        upc_or_ean: string
+        isrc: string
+        explicit: boolean
+        p_line: string
+        p_line_for_display: string
+        c_line: string
+        c_line_for_display: string
+        writer_composer: string
+        release_title: string
+        publisher: string
     }
     duration: number
     has_downloads_left: boolean

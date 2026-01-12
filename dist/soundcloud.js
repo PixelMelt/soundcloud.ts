@@ -23,10 +23,7 @@ var entities_1 = require("./entities");
 var Soundcloud = /** @class */ (function () {
     function Soundcloud(clientId, oauthToken, options) {
         this.api = new API_1.API(Soundcloud.clientId, Soundcloud.oauthToken);
-        this.apps = new entities_1.Apps(this.api);
         this.comments = new entities_1.Comments(this.api);
-        this.me = new entities_1.Me(this.api);
-        this.oembed = new entities_1.Oembed(this.api);
         this.playlists = new entities_1.Playlists(this.api);
         this.resolve = new entities_1.Resolve(this.api);
         this.tracks = new entities_1.Tracks(this.api);
@@ -40,10 +37,7 @@ var Soundcloud = /** @class */ (function () {
         if (options === null || options === void 0 ? void 0 : options.proxy)
             Soundcloud.proxy = options.proxy;
         this.api = new API_1.API(Soundcloud.clientId, Soundcloud.oauthToken, Soundcloud.proxy);
-        this.apps = new entities_1.Apps(this.api);
         this.comments = new entities_1.Comments(this.api);
-        this.me = new entities_1.Me(this.api);
-        this.oembed = new entities_1.Oembed(this.api);
         this.playlists = new entities_1.Playlists(this.api);
         this.resolve = new entities_1.Resolve(this.api);
         this.tracks = new entities_1.Tracks(this.api);

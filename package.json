@@ -1,6 +1,6 @@
 {
   "name": "soundcloud.ts",
-  "version": "0.6.3",
+  "version": "0.7.2",
   "description": "Soundcloud API v2 wrapper with typings.",
   "main": "dist/soundcloud.js",
   "types": "dist/soundcloud.d.ts",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Moebits/soundcloud.ts"
+    "url": "https://github.com/PixelMelt/soundcloud.ts"
   },
   "keywords": [
     "soundcloud",
@@ -27,13 +27,15 @@
     "download",
     "downloader"
   ],
-  "author": "Moebits",
+  "author": "Moebytes",
   "contributors": [
-    "Skick (https://github.com/skick1234)"
+    "Skick (https://github.com/skick1234)",
+    "Lioncat6 (https://github.com/Lioncat6)"
   ],
   "license": "MIT",
   "dependencies": {
     "axios": "^1.8.4",
+    "browser-id3-writer": "^6.3.1",
     "sanitize-filename-ts": "^1.0.2"
   },
   "devDependencies": {

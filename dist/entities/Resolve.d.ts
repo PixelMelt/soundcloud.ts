@@ -5,7 +5,7 @@ export declare class Resolve {
     /**
      * Gets the ID from the html source.
      */
-    getAlt: (resolvable: string | number) => Promise<string | number>;
+    getAlt: (resolvable: string | number) => Promise<number>;
     /**
      * Gets the ID of a user/playlist/track from the Soundcloud URL using the v2 API.
      */

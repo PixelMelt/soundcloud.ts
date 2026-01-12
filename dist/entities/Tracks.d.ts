@@ -27,5 +27,5 @@ export declare class Tracks {
     /**
      * Gets all related tracks of a track using the v2 API.
      */
-    related: (trackResolvable: string | number, limit?: number) => Promise<SoundcloudTrack[]>;
+    related: (trackResolvable: string | number, limit?: number) => Promise<SoundcloudTrackSearch>;
 }

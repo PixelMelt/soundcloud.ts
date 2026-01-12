@@ -1,6 +1,7 @@
 import type { SoundcloudTrack, SoundcloudTranscoding } from '../types';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ID3Writer } from 'browser-id3-writer';
 import { API } from '../API';
 import { Tracks, Users, Playlists } from './index';
 import { Readable } from 'stream';
@@ -18,6 +19,43 @@ const SOURCES: (() => string)[] = [
 	() => 'ffmpeg',
 	() => './ffmpeg',
 ];
+
+// Max filename length in bytes (most filesystems limit to 255 bytes)
+const MAX_FILENAME_BYTES = 200; // Leave room for extension and safety margin
+
+/**
+ * Truncates a string to fit within a maximum byte length.
+ * Handles multi-byte unicode characters properly.
+ */
+const truncateToByteLength = (str: string, maxBytes: number): string => {
+	const encoder = new TextEncoder();
+	const encoded = encoder.encode(str);
+	if (encoded.length <= maxBytes) return str;
+	
+	// Binary search for the right character cutoff
+	let low = 0;
+	let high = str.length;
+	while (low < high) {
+		const mid = Math.ceil((low + high) / 2);
+		if (encoder.encode(str.slice(0, mid)).length <= maxBytes) {
+			low = mid;
+		} else {
+			high = mid - 1;
+		}
+	}
+	return str.slice(0, low);
+};
+
+/**
+ * Safely sanitizes and truncates a title for use as a filename.
+ */
+const safeTitle = (title: string): string => {
+	let safe = sanitize(title);
+	safe = truncateToByteLength(safe, MAX_FILENAME_BYTES);
+	// Trim trailing dots/spaces which can cause issues on Windows
+	safe = safe.replace(/[\s.]+$/, '');
+	return safe || 'untitled';
+};
 
 export class Util {
 	private readonly tracks = new Tracks(this.api);
@@ -63,6 +101,7 @@ export class Util {
 			}
 		}
 	};
+
 	/**
 	 * Gets the direct streaming link of a track.
 	 */
@@ -208,12 +247,12 @@ export class Util {
 				m3u = response.data;
 			} catch (error) {
 				console.error('Error fetching M3U content:', error);
-				Util.removeDirectory(destDir); // Clean up temp directory
+				Util.removeDirectory(destDir);
 				throw 'Failed to fetch M3U content';
 			}
 			const urls = m3u.match(/(http).*?(?=\s)/gm);
 			if (!urls) {
-				Util.removeDirectory(destDir); // Clean up temp directory
+				Util.removeDirectory(destDir);
 				throw 'Could not parse URLs from M3U';
 			}
 			const chunks: string[] = [];
@@ -228,15 +267,12 @@ export class Util {
 					chunks.push(chunkPath);
 				} catch (error) {
 					console.error(`Error downloading chunk ${i} (${urls[i]}):`, error);
-					// Decide if you want to continue or fail the whole process
-					// For now, let's skip this chunk and continue
 					continue;
 				}
 			}
 			await this.mergeFiles(chunks, output);
 		}
 		const stream: NodeJS.ReadableStream = Readable.from(fs.readFileSync(output));
-		Util.removeDirectory(destDir);
 		Util.removeDirectory(destDir);
 		return { stream, type: transcoding.type };
 	};
@@ -252,8 +288,7 @@ export class Util {
 		let result: { stream: NodeJS.ReadableStream; type: string };
 		const track = await this.resolveTrack(trackResolvable);
 
-		title = sanitize(title);
-		if (title.length > 50) title = title.slice(0, 50) + '...';
+		title = safeTitle(title);
 
 		const transcodings = await this.sortTranscodings(track, 'progressive');
 		if (!transcodings.length) {
@@ -275,13 +310,10 @@ export class Util {
 				stream = response.data;
 			} catch (error) {
 				console.error('Error fetching progressive stream:', error);
-				// Attempt m3u stream as fallback
 				result = await this.m3uReadableStream(trackResolvable);
-				stream = result.stream; // Use the stream from m3uReadableStream
-				// Need to re-assign type as well if m3u fallback is used
+				stream = result.stream;
 				const typeFromM3u = result.type;
-				result = { stream, type: typeFromM3u }; // Update result with m3u stream and type
-				// Now continue with the write stream logic using the fallback stream
+				result = { stream, type: typeFromM3u };
 				const fileName = path.extname(dest)
 					? dest
 					: path.join(dest, `${title}.${result.type}`);
@@ -289,7 +321,7 @@ export class Util {
 				stream.pipe(writeStream);
 				await new Promise<void>((resolve, reject) => {
 					stream.on('end', resolve);
-					stream.on('error', reject); // Add error handling for the stream itself
+					stream.on('error', reject);
 				});
 				return fileName;
 			}
@@ -312,26 +344,26 @@ export class Util {
 	/**
 	 * Downloads a track on Soundcloud.
 	 */
-	public downloadTrack = async (trackResolvable: string | SoundcloudTrack, dest?: string) => {
-		const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
+	public downloadTrack = async (trackResolvable: string | SoundcloudTrack, dest?: string, metadata: boolean = true) => {
 		if (!dest) dest = './';
 		const folder = path.extname(dest) ? path.dirname(dest) : dest;
 		if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		const track = await this.resolveTrack(trackResolvable);
+		let output = '';
+
+		const safeTitleStr = safeTitle(track.title);
 
 		if (track.downloadable === true && track.has_downloads_left === true) {
 			try {
 				const downloadObj = (await this.api.getV2(`/tracks/${track.id}/download`)) as any;
 				let result;
 				try {
-					// Use axios, expect arraybuffer, disable auto redirects, allow 3xx status
 					result = await axios.get(downloadObj.redirectUri, {
 						responseType: 'arraybuffer',
 						maxRedirects: 0,
 						validateStatus: (status) => status >= 200 && status < 400,
 					});
 				} catch (error: any) {
-					// Manually handle 302 redirect if axios didn't follow or if configured not to
 					if (
 						error.response &&
 						error.response.status === 302 &&
@@ -345,47 +377,64 @@ export class Util {
 							'Error fetching downloadable track (initial/redirect):',
 							error,
 						);
-						// Fallback to streaming if direct download fails
-						return this.downloadTrackStream(
-							track,
-							track.title.replace(disallowedCharactersRegex, ''),
-							dest,
-						);
+						output = await this.downloadTrackStream(track, safeTitleStr, dest);
+						if (metadata) await this.writeMetadata(track, output);
+						return output;
 					}
 				}
-				// > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
-				// what the fuck soundcloud users
-
-				track.title = sanitize(track.title);
-				if (track.title.length > 50) track.title = track.title.slice(0, 50) + '...';
 
 				dest = path.extname(dest)
 					? dest
 					: path.join(
 							dest,
-							`${track.title.replace(disallowedCharactersRegex, '')}.${
-								// Axios response headers are lowercase
-								result.headers['x-amz-meta-file-type'] || 'mp3' // Provide a default extension
-							}`,
+							`${safeTitleStr}.${result.headers['x-amz-meta-file-type'] || 'mp3'}`,
 					  );
-				const arrayBuffer = result.data; // Axios puts arraybuffer in data
-				fs.writeFileSync(dest, Buffer.from(arrayBuffer)); // No 'binary' needed with Buffer.from(ArrayBuffer)
-				return dest;
+				const arrayBuffer = result.data;
+				fs.writeFileSync(dest, Buffer.from(arrayBuffer));
+				output = dest;
 			} catch (e) {
-				// Catch specific errors if needed, or general catch
 				console.error('Error processing direct download:', e);
-				return this.downloadTrackStream(
-					track,
-					track.title.replace(disallowedCharactersRegex, ''),
-					dest,
-				);
+				output = await this.downloadTrackStream(track, safeTitleStr, dest);
 			}
 		} else {
-			return this.downloadTrackStream(
-				track,
-				track.title.replace(disallowedCharactersRegex, ''),
-				dest,
-			);
+			output = await this.downloadTrackStream(track, safeTitleStr, dest);
+		}
+
+		if (metadata) await this.writeMetadata(track, output);
+		return output;
+	};
+
+	/**
+	 * Writes ID3 metadata to a downloaded track.
+	 */
+	private readonly writeMetadata = async (track: SoundcloudTrack, outputPath: string) => {
+		try {
+			const coverLink = await this.downloadSongCover(track, '', true);
+			const imageResponse = await axios.get(coverLink, { responseType: 'arraybuffer' });
+			const imageBuffer = imageResponse.data;
+			const buffer = new Uint8Array(fs.readFileSync(outputPath)).buffer;
+			const writer = new ID3Writer(buffer);
+			writer.setFrame('TIT2', track.title)
+				.setFrame('TPE1', [track.user.username])
+				.setFrame('TLEN', track.duration)
+				.setFrame('TYER', new Date(track.created_at).getFullYear())
+				.setFrame('TCON', [track.genre])
+				.setFrame('COMM', {
+					description: 'Description',
+					text: track.description ?? '',
+					language: 'eng'
+				})
+				.setFrame('APIC', {
+					type: 3,
+					data: imageBuffer,
+					description: track.title,
+					useUnicodeEncoding: false
+				});
+			writer.addTag();
+			const taggedBuffer = await writer.getBlob().arrayBuffer();
+			fs.writeFileSync(outputPath, new Uint8Array(taggedBuffer));
+		} catch (error) {
+			console.error('Error writing metadata:', error);
 		}
 	};
 
@@ -446,7 +495,6 @@ export class Util {
 	): Promise<NodeJS.ReadableStream> => {
 		const url = await this.streamLink(trackResolvable, 'progressive');
 		if (!url) {
-			// Fallback to m3u stream if progressive link fails
 			const { stream } = await this.m3uReadableStream(trackResolvable);
 			return stream;
 		}
@@ -458,7 +506,6 @@ export class Util {
 			return response.data as NodeJS.ReadableStream;
 		} catch (error) {
 			console.error('Error fetching progressive stream for streamTrack:', error);
-			// Fallback to m3u stream on error
 			const { stream } = await this.m3uReadableStream(trackResolvable);
 			return stream;
 		}
@@ -472,15 +519,14 @@ export class Util {
 		dest?: string,
 		noDL?: boolean,
 	) => {
-		const disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
 		if (!dest) dest = './';
 		const folder = dest;
-		if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+		if (folder !== './' && !fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 		const track = await this.resolveTrack(trackResolvable);
 		const artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url)
 			.replace('.jpg', '.png')
 			.replace('-large', '-t500x500');
-		const title = track.title.replace(disallowedCharactersRegex, '');
+		const title = safeTitle(track.title);
 		dest = path.extname(dest) ? dest : path.join(folder, `${title}.png`);
 		const client_id = await this.api.getClientId();
 		const url = `${artwork}?client_id=${client_id}`;
@@ -491,9 +537,6 @@ export class Util {
 			return dest;
 		} catch (error) {
 			console.error('Error downloading song cover:', error);
-			// Decide how to handle the error, e.g., throw, return null, or return the path anyway?
-			// For now, let's re-throw or return null/undefined based on expected behavior.
-			// Throwing seems more appropriate if the download failed.
 			throw new Error(`Failed to download song cover from ${url}`);
 		}
 	};

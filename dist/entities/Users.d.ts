@@ -1,17 +1,9 @@
-import type { SoundcloudTrack, SoundcloudUserFilter, SoundcloudUserSearch, SoundcloudUser, SoundcloudWebProfile } from "../types";
+import type { SoundcloudTrack, SoundcloudUserFilter, SoundcloudUserSearch, SoundcloudUser, SoundcloudWebProfile, SoundcloudPlaylist } from "../types";
 import { API } from "../API";
 export declare class Users {
     private readonly api;
     private readonly resolve;
     constructor(api: API);
-    /**
-     * Gets a user's followers.
-     */
-    following: (userResolvable: string | number, limit?: number) => Promise<SoundcloudUser[]>;
-    /**
-     * Gets all the albums by the user using Soundcloud v2 API.
-     */
-    albums: (userResolvable: string | number) => Promise<SoundcloudTrack[]>;
     /**
      * Searches for users using the v2 API.
      */
@@ -28,6 +20,18 @@ export declare class Users {
      * Gets all of a users liked tracks.
      */
     likes: (userResolvable: string | number, limit?: number) => Promise<SoundcloudTrack[]>;
+    /**
+     * Gets all the playlists by the user using Soundcloud v2 API.
+     */
+    playlists: (userResolvable: string | number) => Promise<SoundcloudPlaylist[]>;
+    /**
+     * Gets all the albums by the user using Soundcloud v2 API.
+     */
+    albums: (userResolvable: string | number) => Promise<SoundcloudTrack[]>;
+    /**
+     * Gets a user's following list.
+     */
+    following: (userResolvable: string | number, limit?: number) => Promise<SoundcloudUser[]>;
     /**
      * Gets all the web profiles on a users sidebar.
      */

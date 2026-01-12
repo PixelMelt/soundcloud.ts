@@ -32,6 +32,13 @@ describe("Users", function () {
     assert(Object.prototype.hasOwnProperty.call(response[0], "title"));
   });
 
+  it("should get user playlists", async function () {
+    const response = await soundcloud.users.playlists(
+      "https://soundcloud.com/5tereomanjpn"
+    );
+    assert(Object.prototype.hasOwnProperty.call(response[0], "description"));
+  });
+
   it("should get a users web profiles", async function () {
     const response = await soundcloud.users.webProfiles(
       "https://soundcloud.com/oksuu"

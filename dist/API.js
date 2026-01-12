@@ -86,7 +86,10 @@ var API = /** @class */ (function () {
                         if (this.oauthToken)
                             params.oauth_token = this.oauthToken;
                         query = params ? "?" + new URLSearchParams(params).toString() : "";
-                        return [4 /*yield*/, fetch(url + query, this.options(method, params))];
+                        url += query;
+                        if (this.proxy)
+                            url = this.proxy + url;
+                        return [4 /*yield*/, fetch(url, this.options(method, params))];
                     case 3:
                         response = _a.sent();
                         if (!response.ok)

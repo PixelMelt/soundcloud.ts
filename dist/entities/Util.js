@@ -35,10 +35,20 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Util = void 0;
 var fs = require("fs");
 var path = require("path");
+var browser_id3_writer_1 = require("browser-id3-writer");
 var index_1 = require("./index");
 var stream_1 = require("stream");
 var child_process_1 = require("child_process");
@@ -55,6 +65,41 @@ var SOURCES = [
     function () { return 'ffmpeg'; },
     function () { return './ffmpeg'; },
 ];
+// Max filename length in bytes (most filesystems limit to 255 bytes)
+var MAX_FILENAME_BYTES = 200; // Leave room for extension and safety margin
+/**
+ * Truncates a string to fit within a maximum byte length.
+ * Handles multi-byte unicode characters properly.
+ */
+var truncateToByteLength = function (str, maxBytes) {
+    var encoder = new TextEncoder();
+    var encoded = encoder.encode(str);
+    if (encoded.length <= maxBytes)
+        return str;
+    // Binary search for the right character cutoff
+    var low = 0;
+    var high = str.length;
+    while (low < high) {
+        var mid = Math.ceil((low + high) / 2);
+        if (encoder.encode(str.slice(0, mid)).length <= maxBytes) {
+            low = mid;
+        }
+        else {
+            high = mid - 1;
+        }
+    }
+    return str.slice(0, low);
+};
+/**
+ * Safely sanitizes and truncates a title for use as a filename.
+ */
+var safeTitle = function (title) {
+    var safe = (0, sanitize_filename_ts_1.sanitize)(title);
+    safe = truncateToByteLength(safe, MAX_FILENAME_BYTES);
+    // Trim trailing dots/spaces which can cause issues on Windows
+    safe = safe.replace(/[\s.]+$/, '');
+    return safe || 'untitled';
+};
 var Util = /** @class */ (function () {
     function Util(api) {
         var _this = this;
@@ -334,12 +379,12 @@ var Util = /** @class */ (function () {
                     case 11:
                         error_3 = _a.sent();
                         console.error('Error fetching M3U content:', error_3);
-                        Util.removeDirectory(destDir); // Clean up temp directory
+                        Util.removeDirectory(destDir);
                         throw 'Failed to fetch M3U content';
                     case 12:
                         urls = m3u.match(/(http).*?(?=\s)/gm);
                         if (!urls) {
-                            Util.removeDirectory(destDir); // Clean up temp directory
+                            Util.removeDirectory(destDir);
                             throw 'Could not parse URLs from M3U';
                         }
                         chunks = [];
@@ -363,8 +408,6 @@ var Util = /** @class */ (function () {
                     case 16:
                         error_4 = _a.sent();
                         console.error("Error downloading chunk ".concat(i, " (").concat(urls[i], "):"), error_4);
-                        // Decide if you want to continue or fail the whole process
-                        // For now, let's skip this chunk and continue
                         return [3 /*break*/, 17];
                     case 17:
                         i++;
@@ -375,7 +418,6 @@ var Util = /** @class */ (function () {
                         _a.label = 20;
                     case 20:
                         stream = stream_1.Readable.from(fs.readFileSync(output));
-                        Util.removeDirectory(destDir);
                         Util.removeDirectory(destDir);
                         return [2 /*return*/, { stream: stream, type: transcoding.type }];
                 }
@@ -391,9 +433,7 @@ var Util = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
                         track = _a.sent();
-                        title = (0, sanitize_filename_ts_1.sanitize)(title);
-                        if (title.length > 50)
-                            title = title.slice(0, 50) + '...';
+                        title = safeTitle(title);
                         return [4 /*yield*/, this.sortTranscodings(track, 'progressive')];
                     case 2:
                         transcodings = _a.sent();
@@ -428,11 +468,10 @@ var Util = /** @class */ (function () {
                         console.error('Error fetching progressive stream:', error_5);
                         return [4 /*yield*/, this.m3uReadableStream(trackResolvable)];
                     case 9:
-                        // Attempt m3u stream as fallback
                         result = _a.sent();
-                        stream_2 = result.stream; // Use the stream from m3uReadableStream
+                        stream_2 = result.stream;
                         typeFromM3u = result.type;
-                        result = { stream: stream_2, type: typeFromM3u }; // Update result with m3u stream and type
+                        result = { stream: stream_2, type: typeFromM3u };
                         fileName_1 = path.extname(dest)
                             ? dest
                             : path.join(dest, "".concat(title, ".").concat(result.type));
@@ -440,7 +479,7 @@ var Util = /** @class */ (function () {
                         stream_2.pipe(writeStream_1);
                         return [4 /*yield*/, new Promise(function (resolve, reject) {
                                 stream_2.on('end', resolve);
-                                stream_2.on('error', reject); // Add error handling for the stream itself
+                                stream_2.on('error', reject);
                             })];
                     case 10:
                         _a.sent();
@@ -466,79 +505,146 @@ var Util = /** @class */ (function () {
         /**
          * Downloads a track on Soundcloud.
          */
-        this.downloadTrack = function (trackResolvable, dest) { return __awaiter(_this, void 0, void 0, function () {
-            var disallowedCharactersRegex, folder, track, downloadObj, result, error_6, arrayBuffer, e_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+        this.downloadTrack = function (trackResolvable_1, dest_1) {
+            var args_1 = [];
+            for (var _i = 2; _i < arguments.length; _i++) {
+                args_1[_i - 2] = arguments[_i];
+            }
+            return __awaiter(_this, __spreadArray([trackResolvable_1, dest_1], args_1, true), void 0, function (trackResolvable, dest, metadata) {
+                var folder, track, output, safeTitleStr, downloadObj, result, error_6, arrayBuffer, e_1;
+                if (metadata === void 0) { metadata = true; }
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!dest)
+                                dest = './';
+                            folder = path.extname(dest) ? path.dirname(dest) : dest;
+                            if (!fs.existsSync(folder))
+                                fs.mkdirSync(folder, { recursive: true });
+                            return [4 /*yield*/, this.resolveTrack(trackResolvable)];
+                        case 1:
+                            track = _a.sent();
+                            output = '';
+                            safeTitleStr = safeTitle(track.title);
+                            if (!(track.downloadable === true && track.has_downloads_left === true)) return [3 /*break*/, 17];
+                            _a.label = 2;
+                        case 2:
+                            _a.trys.push([2, 14, , 16]);
+                            return [4 /*yield*/, this.api.getV2("/tracks/".concat(track.id, "/download"))];
+                        case 3:
+                            downloadObj = (_a.sent());
+                            result = void 0;
+                            _a.label = 4;
+                        case 4:
+                            _a.trys.push([4, 6, , 13]);
+                            return [4 /*yield*/, axios_1.default.get(downloadObj.redirectUri, {
+                                    responseType: 'arraybuffer',
+                                    maxRedirects: 0,
+                                    validateStatus: function (status) { return status >= 200 && status < 400; },
+                                })];
+                        case 5:
+                            result = _a.sent();
+                            return [3 /*break*/, 13];
+                        case 6:
+                            error_6 = _a.sent();
+                            if (!(error_6.response &&
+                                error_6.response.status === 302 &&
+                                error_6.response.headers.location)) return [3 /*break*/, 8];
+                            return [4 /*yield*/, axios_1.default.get(error_6.response.headers.location, {
+                                    responseType: 'arraybuffer',
+                                })];
+                        case 7:
+                            result = _a.sent();
+                            return [3 /*break*/, 12];
+                        case 8:
+                            console.error('Error fetching downloadable track (initial/redirect):', error_6);
+                            return [4 /*yield*/, this.downloadTrackStream(track, safeTitleStr, dest)];
+                        case 9:
+                            output = _a.sent();
+                            if (!metadata) return [3 /*break*/, 11];
+                            return [4 /*yield*/, this.writeMetadata(track, output)];
+                        case 10:
+                            _a.sent();
+                            _a.label = 11;
+                        case 11: return [2 /*return*/, output];
+                        case 12: return [3 /*break*/, 13];
+                        case 13:
+                            dest = path.extname(dest)
+                                ? dest
+                                : path.join(dest, "".concat(safeTitleStr, ".").concat(result.headers['x-amz-meta-file-type'] || 'mp3'));
+                            arrayBuffer = result.data;
+                            fs.writeFileSync(dest, Buffer.from(arrayBuffer));
+                            output = dest;
+                            return [3 /*break*/, 16];
+                        case 14:
+                            e_1 = _a.sent();
+                            console.error('Error processing direct download:', e_1);
+                            return [4 /*yield*/, this.downloadTrackStream(track, safeTitleStr, dest)];
+                        case 15:
+                            output = _a.sent();
+                            return [3 /*break*/, 16];
+                        case 16: return [3 /*break*/, 19];
+                        case 17: return [4 /*yield*/, this.downloadTrackStream(track, safeTitleStr, dest)];
+                        case 18:
+                            output = _a.sent();
+                            _a.label = 19;
+                        case 19:
+                            if (!metadata) return [3 /*break*/, 21];
+                            return [4 /*yield*/, this.writeMetadata(track, output)];
+                        case 20:
+                            _a.sent();
+                            _a.label = 21;
+                        case 21: return [2 /*return*/, output];
+                    }
+                });
+            });
+        };
+        /**
+         * Writes ID3 metadata to a downloaded track.
+         */
+        this.writeMetadata = function (track, outputPath) { return __awaiter(_this, void 0, void 0, function () {
+            var coverLink, imageResponse, imageBuffer, buffer, writer, taggedBuffer, error_7;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
-                        if (!dest)
-                            dest = './';
-                        folder = path.extname(dest) ? path.dirname(dest) : dest;
-                        if (!fs.existsSync(folder))
-                            fs.mkdirSync(folder, { recursive: true });
-                        return [4 /*yield*/, this.resolveTrack(trackResolvable)];
+                        _b.trys.push([0, 4, , 5]);
+                        return [4 /*yield*/, this.downloadSongCover(track, '', true)];
                     case 1:
-                        track = _a.sent();
-                        if (!(track.downloadable === true && track.has_downloads_left === true)) return [3 /*break*/, 13];
-                        _a.label = 2;
+                        coverLink = _b.sent();
+                        return [4 /*yield*/, axios_1.default.get(coverLink, { responseType: 'arraybuffer' })];
                     case 2:
-                        _a.trys.push([2, 11, , 12]);
-                        return [4 /*yield*/, this.api.getV2("/tracks/".concat(track.id, "/download"))];
+                        imageResponse = _b.sent();
+                        imageBuffer = imageResponse.data;
+                        buffer = new Uint8Array(fs.readFileSync(outputPath)).buffer;
+                        writer = new browser_id3_writer_1.ID3Writer(buffer);
+                        writer.setFrame('TIT2', track.title)
+                            .setFrame('TPE1', [track.user.username])
+                            .setFrame('TLEN', track.duration)
+                            .setFrame('TYER', new Date(track.created_at).getFullYear())
+                            .setFrame('TCON', [track.genre])
+                            .setFrame('COMM', {
+                            description: 'Description',
+                            text: (_a = track.description) !== null && _a !== void 0 ? _a : '',
+                            language: 'eng'
+                        })
+                            .setFrame('APIC', {
+                            type: 3,
+                            data: imageBuffer,
+                            description: track.title,
+                            useUnicodeEncoding: false
+                        });
+                        writer.addTag();
+                        return [4 /*yield*/, writer.getBlob().arrayBuffer()];
                     case 3:
-                        downloadObj = (_a.sent());
-                        result = void 0;
-                        _a.label = 4;
+                        taggedBuffer = _b.sent();
+                        fs.writeFileSync(outputPath, new Uint8Array(taggedBuffer));
+                        return [3 /*break*/, 5];
                     case 4:
-                        _a.trys.push([4, 6, , 10]);
-                        return [4 /*yield*/, axios_1.default.get(downloadObj.redirectUri, {
-                                responseType: 'arraybuffer',
-                                maxRedirects: 0,
-                                validateStatus: function (status) { return status >= 200 && status < 400; },
-                            })];
-                    case 5:
-                        // Use axios, expect arraybuffer, disable auto redirects, allow 3xx status
-                        result = _a.sent();
-                        return [3 /*break*/, 10];
-                    case 6:
-                        error_6 = _a.sent();
-                        if (!(error_6.response &&
-                            error_6.response.status === 302 &&
-                            error_6.response.headers.location)) return [3 /*break*/, 8];
-                        return [4 /*yield*/, axios_1.default.get(error_6.response.headers.location, {
-                                responseType: 'arraybuffer',
-                            })];
-                    case 7:
-                        result = _a.sent();
-                        return [3 /*break*/, 9];
-                    case 8:
-                        console.error('Error fetching downloadable track (initial/redirect):', error_6);
-                        // Fallback to streaming if direct download fails
-                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ''), dest)];
-                    case 9: return [3 /*break*/, 10];
-                    case 10:
-                        // > Uncaught Error: ENAMETOOLONG: name too long, open '∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴∵∴.mp3'
-                        // what the fuck soundcloud users
-                        track.title = (0, sanitize_filename_ts_1.sanitize)(track.title);
-                        if (track.title.length > 50)
-                            track.title = track.title.slice(0, 50) + '...';
-                        dest = path.extname(dest)
-                            ? dest
-                            : path.join(dest, "".concat(track.title.replace(disallowedCharactersRegex, ''), ".").concat(
-                            // Axios response headers are lowercase
-                            result.headers['x-amz-meta-file-type'] || 'mp3' // Provide a default extension
-                            ));
-                        arrayBuffer = result.data;
-                        fs.writeFileSync(dest, Buffer.from(arrayBuffer)); // No 'binary' needed with Buffer.from(ArrayBuffer)
-                        return [2 /*return*/, dest];
-                    case 11:
-                        e_1 = _a.sent();
-                        // Catch specific errors if needed, or general catch
-                        console.error('Error processing direct download:', e_1);
-                        return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ''), dest)];
-                    case 12: return [3 /*break*/, 14];
-                    case 13: return [2 /*return*/, this.downloadTrackStream(track, track.title.replace(disallowedCharactersRegex, ''), dest)];
-                    case 14: return [2 /*return*/];
+                        error_7 = _b.sent();
+                        console.error('Error writing metadata:', error_7);
+                        return [3 /*break*/, 5];
+                    case 5: return [2 /*return*/];
                 }
             });
         }); };
@@ -621,7 +727,7 @@ var Util = /** @class */ (function () {
          * Returns a readable stream to the track.
          */
         this.streamTrack = function (trackResolvable) { return __awaiter(_this, void 0, void 0, function () {
-            var url, stream, response, error_7, stream;
+            var url, stream, response, error_8, stream;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.streamLink(trackResolvable, 'progressive')];
@@ -642,8 +748,8 @@ var Util = /** @class */ (function () {
                         response = _a.sent();
                         return [2 /*return*/, response.data];
                     case 5:
-                        error_7 = _a.sent();
-                        console.error('Error fetching progressive stream for streamTrack:', error_7);
+                        error_8 = _a.sent();
+                        console.error('Error fetching progressive stream for streamTrack:', error_8);
                         return [4 /*yield*/, this.m3uReadableStream(trackResolvable)];
                     case 6:
                         stream = (_a.sent()).stream;
@@ -656,15 +762,14 @@ var Util = /** @class */ (function () {
          * Downloads a track's song cover.
          */
         this.downloadSongCover = function (trackResolvable, dest, noDL) { return __awaiter(_this, void 0, void 0, function () {
-            var disallowedCharactersRegex, folder, track, artwork, title, client_id, url, response, error_8;
+            var folder, track, artwork, title, client_id, url, response, error_9;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        disallowedCharactersRegex = /[\\/:*?\"\'\`<>|%$!#]/g;
                         if (!dest)
                             dest = './';
                         folder = dest;
-                        if (!fs.existsSync(folder))
+                        if (folder !== './' && !fs.existsSync(folder))
                             fs.mkdirSync(folder, { recursive: true });
                         return [4 /*yield*/, this.resolveTrack(trackResolvable)];
                     case 1:
@@ -672,7 +777,7 @@ var Util = /** @class */ (function () {
                         artwork = (track.artwork_url ? track.artwork_url : track.user.avatar_url)
                             .replace('.jpg', '.png')
                             .replace('-large', '-t500x500');
-                        title = track.title.replace(disallowedCharactersRegex, '');
+                        title = safeTitle(track.title);
                         dest = path.extname(dest) ? dest : path.join(folder, "".concat(title, ".png"));
                         return [4 /*yield*/, this.api.getClientId()];
                     case 2:
@@ -689,11 +794,8 @@ var Util = /** @class */ (function () {
                         fs.writeFileSync(dest, Buffer.from(response.data));
                         return [2 /*return*/, dest];
                     case 5:
-                        error_8 = _a.sent();
-                        console.error('Error downloading song cover:', error_8);
-                        // Decide how to handle the error, e.g., throw, return null, or return the path anyway?
-                        // For now, let's re-throw or return null/undefined based on expected behavior.
-                        // Throwing seems more appropriate if the download failed.
+                        error_9 = _a.sent();
+                        console.error('Error downloading song cover:', error_9);
                         throw new Error("Failed to download song cover from ".concat(url));
                     case 6: return [2 /*return*/];
                 }

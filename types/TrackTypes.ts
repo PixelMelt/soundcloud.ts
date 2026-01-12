@@ -36,9 +36,21 @@ export interface SoundcloudTrack {
     }
     title: string
     publisher_metadata: {
-        urn: string
-        contains_music: boolean
         id: number
+        urn: string
+        artist: string
+        album_title: string
+        contains_music: boolean
+        upc_or_ean: string
+        isrc: string
+        explicit: boolean
+        p_line: string
+        p_line_for_display: string
+        c_line: string
+        c_line_for_display: string
+        writer_composer: string
+        release_title: string
+        publisher: string
     }
     duration: number
     has_downloads_left: boolean
@@ -75,6 +87,14 @@ export interface SoundcloudTrack {
     permalink_url: string
     user: SoundcloudUser
     playback_count: number
+
+    _resource_id?: number | null
+    _resource_type?: string | null
+    caption: string | null
+    playable?: boolean | null
+    station_urn?: string | null
+    station_permalink?: string | null
+    track_authorization?: string | null
 }
 export interface SoundcloudTrackSearch extends SoundcloudSearch {
     collection: SoundcloudTrack[]
