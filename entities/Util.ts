@@ -24,7 +24,6 @@ export class Util {
     private readonly playlists = new Playlists(this.api)
     public constructor(private readonly api: API) {}
 
-
     private readonly resolveTrack = async (trackResolvable: string | SoundcloudTrack) => {
         return typeof trackResolvable === "string" ? await this.tracks.get(trackResolvable) : trackResolvable
     }
@@ -172,7 +171,7 @@ export class Util {
         const reader = webStream.getReader()
         return new Readable({
           async read() {
-            const { done, value } = await reader.read()
+            const {done, value} = await reader.read()
             if (done) {
               this.push(null)
             } else {
@@ -328,6 +327,19 @@ export class Util {
         const arrayBuffer = await fetch(url).then(r => r.arrayBuffer())
         fs.writeFileSync(dest, new Uint8Array(Buffer.from(arrayBuffer)))
         return dest
+    }
+
+    /**
+     * Gets a track title from the page
+     */
+    public getTitle = async (songUrl: string) => {
+        const headers = {
+            "referer": "soundcloud.com",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36"
+        }
+        const html = await fetch(songUrl, {headers}).then((r) => r.text())
+        const title = html.match(/(?<="og:title" content=")(.*?)(?=")/)?.[0]?.replace(/\//g, "")
+        return title
     }
 
     private static readonly removeDirectory = (dir: string) => {
