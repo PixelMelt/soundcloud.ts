@@ -12,4 +12,9 @@ describe("Tracks", function () {
         const response = await soundcloud.tracks.search({q: "virtual riot"})
         assert(Object.prototype.hasOwnProperty.call(response.collection[0], "description"))
     })
+
+    it("should get track comments", async function () {
+        const response = await soundcloud.tracks.comments("https://soundcloud.com/ivycomb/heat")
+        assert(Object.prototype.hasOwnProperty.call(response[0], "body"))
+    })
 })
