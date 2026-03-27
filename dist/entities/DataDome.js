@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.solveDataDome = exports.closeTlsSession = exports.getTlsSession = void 0;
+exports.solveDataDome = exports.resetTlsSession = exports.getTlsSession = void 0;
 var child_process_1 = require("child_process");
 var path = require("path");
 var wreq_js_1 = require("wreq-js");
@@ -55,7 +55,7 @@ function generatePayload(cid, bpc) {
     return JSON.parse(result.trim());
 }
 /**
- * TLS-fingerprinted session singleton shared between DD solve and API requests.
+ * TLS-fingerprinted session. Recreated after each DD solve to clear the cookie jar.
  */
 var _session = null;
 function getTlsSession() {
@@ -74,18 +74,18 @@ function getTlsSession() {
     });
 }
 exports.getTlsSession = getTlsSession;
-function closeTlsSession() {
+function resetTlsSession() {
     if (_session) {
         try {
             _session.close();
         }
         catch (_a) { }
-        _session = null;
     }
+    _session = null;
 }
-exports.closeTlsSession = closeTlsSession;
+exports.resetTlsSession = resetTlsSession;
 /**
- * POST to the DD endpoint with Chrome TLS fingerprint.
+ * POST to the DD endpoint using a separate session (no stale cookies).
  */
 function ddPost(session, cid, bpc) {
     return __awaiter(this, void 0, void 0, function () {
@@ -137,33 +137,47 @@ function ddPost(session, cid, bpc) {
     });
 }
 /**
- * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1, all with Chrome TLS.
- * Returns a valid datadome cookie ID.
+ * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1.
+ * Uses a dedicated session for the solve, then resets the main session
+ * so the API retry uses a clean cookie jar with only x-datadome-clientid.
  */
 function solveDataDome(initialCid) {
     return __awaiter(this, void 0, void 0, function () {
-        var session, cid;
+        var solveSession, cid;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, getTlsSession()];
+                case 0: return [4 /*yield*/, (0, wreq_js_1.createSession)({ browser: 'chrome_145' })];
                 case 1:
-                    session = _a.sent();
+                    solveSession = _a.sent();
                     cid = initialCid || '.keep';
-                    return [4 /*yield*/, ddPost(session, cid, 1)];
+                    _a.label = 2;
                 case 2:
+                    _a.trys.push([2, , 8, 9]);
+                    return [4 /*yield*/, ddPost(solveSession, cid, 1)];
+                case 3:
                     cid = _a.sent();
                     return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 800 + Math.random() * 500); })];
-                case 3:
-                    _a.sent();
-                    return [4 /*yield*/, ddPost(session, cid, 2)];
                 case 4:
+                    _a.sent();
+                    return [4 /*yield*/, ddPost(solveSession, cid, 2)];
+                case 5:
                     cid = _a.sent();
                     return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 1500 + Math.random() * 1000); })];
-                case 5:
-                    _a.sent();
-                    return [4 /*yield*/, ddPost(session, cid, 1)];
                 case 6:
+                    _a.sent();
+                    return [4 /*yield*/, ddPost(solveSession, cid, 1)];
+                case 7:
                     cid = _a.sent();
+                    return [3 /*break*/, 9];
+                case 8:
+                    try {
+                        solveSession.close();
+                    }
+                    catch (_b) { }
+                    return [7 /*endfinally*/];
+                case 9:
+                    // Reset the main API session so the retry starts with a clean cookie jar
+                    resetTlsSession();
                     return [2 /*return*/, cid];
             }
         });

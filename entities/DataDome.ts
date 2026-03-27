@@ -26,7 +26,7 @@ function generatePayload(cid: string, bpc: number): SolverOutput {
 }
 
 /**
- * TLS-fingerprinted session singleton shared between DD solve and API requests.
+ * TLS-fingerprinted session. Recreated after each DD solve to clear the cookie jar.
  */
 let _session: any = null;
 export async function getTlsSession(): Promise<any> {
@@ -36,15 +36,15 @@ export async function getTlsSession(): Promise<any> {
 	return _session;
 }
 
-export function closeTlsSession(): void {
+export function resetTlsSession(): void {
 	if (_session) {
 		try { _session.close(); } catch {}
-		_session = null;
 	}
+	_session = null;
 }
 
 /**
- * POST to the DD endpoint with Chrome TLS fingerprint.
+ * POST to the DD endpoint using a separate session (no stale cookies).
  */
 async function ddPost(session: any, cid: string, bpc: number): Promise<string> {
 	const payload = generatePayload(cid, bpc);
@@ -87,18 +87,28 @@ async function ddPost(session: any, cid: string, bpc: number): Promise<string> {
 }
 
 /**
- * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1, all with Chrome TLS.
- * Returns a valid datadome cookie ID.
+ * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1.
+ * Uses a dedicated session for the solve, then resets the main session
+ * so the API retry uses a clean cookie jar with only x-datadome-clientid.
  */
 export async function solveDataDome(initialCid?: string): Promise<string> {
-	const session = await getTlsSession();
+	// Use a dedicated session for the solve POSTs so the main session's
+	// cookie jar doesn't get polluted with DD cookies
+	const solveSession = await createSession({ browser: 'chrome_145' });
 	let cid = initialCid || '.keep';
 
-	cid = await ddPost(session, cid, 1);
-	await new Promise((r) => setTimeout(r, 800 + Math.random() * 500));
-	cid = await ddPost(session, cid, 2);
-	await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
-	cid = await ddPost(session, cid, 1);
+	try {
+		cid = await ddPost(solveSession, cid, 1);
+		await new Promise((r) => setTimeout(r, 800 + Math.random() * 500));
+		cid = await ddPost(solveSession, cid, 2);
+		await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
+		cid = await ddPost(solveSession, cid, 1);
+	} finally {
+		try { solveSession.close(); } catch {}
+	}
+
+	// Reset the main API session so the retry starts with a clean cookie jar
+	resetTlsSession();
 
 	return cid;
 }
