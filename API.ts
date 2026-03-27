@@ -81,22 +81,24 @@ export class API {
 
         let response = await this.tlsFetch(fullUrl, options)
 
-        // DataDome challenge — solve with TLS-fingerprinted session and retry
-        if (response.status === 403) {
+        // DataDome challenge — any 403 with x-datadome header
+        const isDD = response.status === 403 && (
+            response.headers.get("x-datadome") ||
+            (response.headers.get("set-cookie") || "").includes("datadome=")
+        )
+        if (isDD) {
             const setCookie = response.headers.get("set-cookie") || ""
-            if (setCookie.includes("datadome=")) {
-                const initialCid = setCookie.match(/datadome=([^;]+)/)?.[1] || this.ddCookie
-                try {
-                    console.log("[DataDome] Challenge detected, solving...")
-                    this.ddCookie = await solveDataDome(initialCid)
-                    const retryHeaders = this.requestHeaders(method)
-                    const retryOptions: RequestInit = { method, headers: retryHeaders, redirect: "follow" }
-                    if (method === "POST" && params) retryOptions.body = JSON.stringify(params)
-                    response = await this.tlsFetch(fullUrl, retryOptions)
-                    console.log("[DataDome] Solved, retry status:", response.status)
-                } catch (e) {
-                    console.error("[DataDome] Solve failed:", e)
-                }
+            const initialCid = setCookie.match(/datadome=([^;]+)/)?.[1] || this.ddCookie
+            try {
+                console.log("[DataDome] Challenge detected, solving...")
+                this.ddCookie = await solveDataDome(initialCid)
+                const retryHeaders = this.requestHeaders(method)
+                const retryOptions: RequestInit = { method, headers: retryHeaders, redirect: "follow" }
+                if (method === "POST" && params) retryOptions.body = JSON.stringify(params)
+                response = await this.tlsFetch(fullUrl, retryOptions)
+                console.log("[DataDome] Solved, retry status:", response.status)
+            } catch (e) {
+                console.error("[DataDome] Solve failed:", e)
             }
         }
 
