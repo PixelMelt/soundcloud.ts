@@ -25,15 +25,14 @@ export declare class API {
     post: (endpoint: string, params?: {
         [key: string]: any;
     }) => Promise<any>;
-    private options;
     /**
-     * Returns true if response looks like a DataDome block (403 with DD redirect).
+     * Build request headers with DD cookie if available. No Cookie header (cross-origin SameSite=Lax).
      */
-    private isDataDomeBlock;
+    private requestHeaders;
     /**
-     * Extract datadome cookie from set-cookie header.
+     * Make a fetch request using TLS-fingerprinted session (wreq-js).
      */
-    private extractDDCookie;
+    private tlsFetch;
     private fetchRequest;
     private getRequest;
     getClientIdWeb: () => Promise<string>;

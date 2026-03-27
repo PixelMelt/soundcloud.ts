@@ -1,13 +1,15 @@
 import { execFileSync } from 'child_process';
 import * as path from 'path';
+import { createSession } from 'wreq-js';
 
-// __dirname is dist/entities/ at runtime, so go up two levels to reach the package root
+// __dirname is dist/entities/ at runtime, go up two levels to package root
 const SOLVER_BIN = path.join(__dirname, '..', '..', 'bin', 'datadome-solver');
 const DDK = '7FC6D561817844F25B65CDD97F28A1';
 const DD_ENDPOINT = 'https://dwt.soundcloud.com/js/';
 const DDV = '5.5.1';
-const PAGE_REFERER = encodeURIComponent('https://soundcloud.com/discover');
-const PAGE_REQUEST = encodeURIComponent('/discover');
+const UA =
+	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
+const CH_UA = '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"';
 
 interface SolverOutput {
 	jspl: string;
@@ -23,58 +25,80 @@ function generatePayload(cid: string, bpc: number): SolverOutput {
 	return JSON.parse(result.trim());
 }
 
-async function ddPost(cid: string, bpc: number): Promise<string> {
+/**
+ * TLS-fingerprinted session singleton shared between DD solve and API requests.
+ */
+let _session: any = null;
+export async function getTlsSession(): Promise<any> {
+	if (!_session) {
+		_session = await createSession({ browser: 'chrome_145' });
+	}
+	return _session;
+}
+
+export function closeTlsSession(): void {
+	if (_session) {
+		try { _session.close(); } catch {}
+		_session = null;
+	}
+}
+
+/**
+ * POST to the DD endpoint with Chrome TLS fingerprint.
+ */
+async function ddPost(session: any, cid: string, bpc: number): Promise<string> {
 	const payload = generatePayload(cid, bpc);
+
 	const body = new URLSearchParams({
 		jspl: payload.jspl,
 		eventCounters: payload.eventCounters,
 		jsType: payload.jsType,
 		cid,
 		ddk: DDK,
-		Referer: PAGE_REFERER,
-		request: PAGE_REQUEST,
+		Referer: encodeURIComponent('https://soundcloud.com/discover'),
+		request: encodeURIComponent('/discover'),
 		responsePage: 'origin',
 		ddv: DDV,
 	});
 
-	const res = await fetch(DD_ENDPOINT, {
+	const res = await session.fetch(DD_ENDPOINT, {
 		method: 'POST',
 		headers: {
+			'sec-ch-ua-platform': '"Linux"',
+			'User-Agent': UA,
+			'sec-ch-ua': CH_UA,
 			'Content-Type': 'application/x-www-form-urlencoded',
-			'User-Agent':
-				'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
-			Origin: 'https://soundcloud.com',
-			Referer: 'https://soundcloud.com/',
+			'sec-ch-ua-mobile': '?0',
 			Accept: '*/*',
+			Origin: 'https://soundcloud.com',
+			'Sec-Fetch-Site': 'same-site',
+			'Sec-Fetch-Mode': 'cors',
+			'Sec-Fetch-Dest': 'empty',
+			Referer: 'https://soundcloud.com/',
+			'Accept-Encoding': 'gzip, deflate, br, zstd',
+			'Accept-Language': 'en-US,en;q=0.9',
 		},
 		body: body.toString(),
 	});
 
-	const dd = (await res.json()) as { cookie?: string; status?: string };
-	const match = dd.cookie?.match(/datadome=([^;]+)/);
-	return match?.[1] || cid;
+	const dd = await res.json();
+	const newCid = (dd.cookie || '').match(/datadome=([^;]+)/)?.[1] || '';
+	return newCid || cid;
 }
 
 /**
- * Solve a DataDome challenge by running the bpc=1 → bpc=2 → bpc=1 trust flow.
+ * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1, all with Chrome TLS.
  * Returns a valid datadome cookie ID.
  */
 export async function solveDataDome(initialCid?: string): Promise<string> {
+	const session = await getTlsSession();
 	let cid = initialCid || '.keep';
 
-	// bpc=1: initial fingerprint
-	cid = await ddPost(cid, 1);
-
-	// Brief pause between requests
+	cid = await ddPost(session, cid, 1);
 	await new Promise((r) => setTimeout(r, 800 + Math.random() * 500));
-
-	// bpc=2: interaction signals
-	cid = await ddPost(cid, 2);
-
+	cid = await ddPost(session, cid, 2);
 	await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
-
-	// bpc=1: navigation trust
-	cid = await ddPost(cid, 1);
+	cid = await ddPost(session, cid, 1);
 
 	return cid;
 }

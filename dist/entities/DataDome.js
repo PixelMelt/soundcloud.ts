@@ -36,16 +36,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.solveDataDome = void 0;
+exports.solveDataDome = exports.closeTlsSession = exports.getTlsSession = void 0;
 var child_process_1 = require("child_process");
 var path = require("path");
-// __dirname is dist/entities/ at runtime, so go up two levels to reach the package root
+var wreq_js_1 = require("wreq-js");
+// __dirname is dist/entities/ at runtime, go up two levels to package root
 var SOLVER_BIN = path.join(__dirname, '..', '..', 'bin', 'datadome-solver');
 var DDK = '7FC6D561817844F25B65CDD97F28A1';
 var DD_ENDPOINT = 'https://dwt.soundcloud.com/js/';
 var DDV = '5.5.1';
-var PAGE_REFERER = encodeURIComponent('https://soundcloud.com/discover');
-var PAGE_REQUEST = encodeURIComponent('/discover');
+var UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
+var CH_UA = '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"';
 function generatePayload(cid, bpc) {
     var args = [DDK, cid, String(bpc)];
     if (bpc >= 2)
@@ -53,9 +54,42 @@ function generatePayload(cid, bpc) {
     var result = (0, child_process_1.execFileSync)(SOLVER_BIN, args, { encoding: 'utf-8', timeout: 5000 });
     return JSON.parse(result.trim());
 }
-function ddPost(cid, bpc) {
+/**
+ * TLS-fingerprinted session singleton shared between DD solve and API requests.
+ */
+var _session = null;
+function getTlsSession() {
     return __awaiter(this, void 0, void 0, function () {
-        var payload, body, res, dd, match;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!!_session) return [3 /*break*/, 2];
+                    return [4 /*yield*/, (0, wreq_js_1.createSession)({ browser: 'chrome_145' })];
+                case 1:
+                    _session = _a.sent();
+                    _a.label = 2;
+                case 2: return [2 /*return*/, _session];
+            }
+        });
+    });
+}
+exports.getTlsSession = getTlsSession;
+function closeTlsSession() {
+    if (_session) {
+        try {
+            _session.close();
+        }
+        catch (_a) { }
+        _session = null;
+    }
+}
+exports.closeTlsSession = closeTlsSession;
+/**
+ * POST to the DD endpoint with Chrome TLS fingerprint.
+ */
+function ddPost(session, cid, bpc) {
+    return __awaiter(this, void 0, void 0, function () {
+        var payload, body, res, dd, newCid;
         var _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
@@ -67,19 +101,27 @@ function ddPost(cid, bpc) {
                         jsType: payload.jsType,
                         cid: cid,
                         ddk: DDK,
-                        Referer: PAGE_REFERER,
-                        request: PAGE_REQUEST,
+                        Referer: encodeURIComponent('https://soundcloud.com/discover'),
+                        request: encodeURIComponent('/discover'),
                         responsePage: 'origin',
                         ddv: DDV,
                     });
-                    return [4 /*yield*/, fetch(DD_ENDPOINT, {
+                    return [4 /*yield*/, session.fetch(DD_ENDPOINT, {
                             method: 'POST',
                             headers: {
+                                'sec-ch-ua-platform': '"Linux"',
+                                'User-Agent': UA,
+                                'sec-ch-ua': CH_UA,
                                 'Content-Type': 'application/x-www-form-urlencoded',
-                                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
-                                Origin: 'https://soundcloud.com',
-                                Referer: 'https://soundcloud.com/',
+                                'sec-ch-ua-mobile': '?0',
                                 Accept: '*/*',
+                                Origin: 'https://soundcloud.com',
+                                'Sec-Fetch-Site': 'same-site',
+                                'Sec-Fetch-Mode': 'cors',
+                                'Sec-Fetch-Dest': 'empty',
+                                Referer: 'https://soundcloud.com/',
+                                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                                'Accept-Language': 'en-US,en;q=0.9',
                             },
                             body: body.toString(),
                         })];
@@ -87,43 +129,40 @@ function ddPost(cid, bpc) {
                     res = _b.sent();
                     return [4 /*yield*/, res.json()];
                 case 2:
-                    dd = (_b.sent());
-                    match = (_a = dd.cookie) === null || _a === void 0 ? void 0 : _a.match(/datadome=([^;]+)/);
-                    return [2 /*return*/, (match === null || match === void 0 ? void 0 : match[1]) || cid];
+                    dd = _b.sent();
+                    newCid = ((_a = (dd.cookie || '').match(/datadome=([^;]+)/)) === null || _a === void 0 ? void 0 : _a[1]) || '';
+                    return [2 /*return*/, newCid || cid];
             }
         });
     });
 }
 /**
- * Solve a DataDome challenge by running the bpc=1 → bpc=2 → bpc=1 trust flow.
+ * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1, all with Chrome TLS.
  * Returns a valid datadome cookie ID.
  */
 function solveDataDome(initialCid) {
     return __awaiter(this, void 0, void 0, function () {
-        var cid;
+        var session, cid;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
-                    cid = initialCid || '.keep';
-                    return [4 /*yield*/, ddPost(cid, 1)];
+                case 0: return [4 /*yield*/, getTlsSession()];
                 case 1:
-                    // bpc=1: initial fingerprint
-                    cid = _a.sent();
-                    // Brief pause between requests
-                    return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 800 + Math.random() * 500); })];
+                    session = _a.sent();
+                    cid = initialCid || '.keep';
+                    return [4 /*yield*/, ddPost(session, cid, 1)];
                 case 2:
-                    // Brief pause between requests
-                    _a.sent();
-                    return [4 /*yield*/, ddPost(cid, 2)];
+                    cid = _a.sent();
+                    return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 800 + Math.random() * 500); })];
                 case 3:
-                    // bpc=2: interaction signals
+                    _a.sent();
+                    return [4 /*yield*/, ddPost(session, cid, 2)];
+                case 4:
                     cid = _a.sent();
                     return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 1500 + Math.random() * 1000); })];
-                case 4:
-                    _a.sent();
-                    return [4 /*yield*/, ddPost(cid, 1)];
                 case 5:
-                    // bpc=1: navigation trust
+                    _a.sent();
+                    return [4 /*yield*/, ddPost(session, cid, 1)];
+                case 6:
                     cid = _a.sent();
                     return [2 /*return*/, cid];
             }

@@ -52,6 +52,8 @@ var DataDome_1 = require("./entities/DataDome");
 var apiURL = "https://api.soundcloud.com";
 var apiV2URL = "https://api-v2.soundcloud.com";
 var webURL = "https://soundcloud.com";
+var UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36";
+var CH_UA = '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"';
 var API = /** @class */ (function () {
     function API(clientId, oauthToken, proxy) {
         var _this = this;
@@ -60,31 +62,52 @@ var API = /** @class */ (function () {
         this.getWebsite = function (endpoint, params) { return _this.getRequest(webURL, endpoint, params); };
         this.getURL = function (URI, params) { return _this.fetchRequest(URI, "GET", params); };
         this.post = function (endpoint, params) { return _this.fetchRequest("".concat(apiURL, "/").concat(endpoint), "POST", params); };
-        this.options = function (method, params) {
+        /**
+         * Build request headers with DD cookie if available. No Cookie header (cross-origin SameSite=Lax).
+         */
+        this.requestHeaders = function (method) {
             var headers = __assign({}, API.headers);
             if (_this.ddCookie)
                 headers["x-datadome-clientid"] = _this.ddCookie;
-            var options = {
-                method: method,
-                headers: headers,
-                redirect: "follow"
-            };
-            if (method === "POST" && params)
-                options.body = JSON.stringify(params);
-            return options;
+            return headers;
         };
-        this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
-            var query, fullUrl, response, initialCid, _a, e_1, contentType;
+        /**
+         * Make a fetch request using TLS-fingerprinted session (wreq-js).
+         */
+        this.tlsFetch = function (url, init) { return __awaiter(_this, void 0, void 0, function () {
+            var session, _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 3, , 5]);
+                        return [4 /*yield*/, (0, DataDome_1.getTlsSession)()];
+                    case 1:
+                        session = _b.sent();
+                        return [4 /*yield*/, session.fetch(url, init)];
+                    case 2: return [2 /*return*/, _b.sent()];
+                    case 3:
+                        _a = _b.sent();
+                        return [4 /*yield*/, fetch(url, init)];
+                    case 4: 
+                    // Fallback to native fetch if wreq-js fails
+                    return [2 /*return*/, _b.sent()];
+                    case 5: return [2 /*return*/];
+                }
+            });
+        }); };
+        this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
+            var query, fullUrl, headers, options, response, setCookie, initialCid, _a, retryHeaders, retryOptions, e_1, contentType;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         if (!params)
                             params = {};
                         if (!!this.clientId) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.getClientId()];
                     case 1:
-                        _b.sent();
-                        _b.label = 2;
+                        _c.sent();
+                        _c.label = 2;
                     case 2:
                         params.client_id = this.clientId;
                         if (this.oauthToken)
@@ -93,26 +116,36 @@ var API = /** @class */ (function () {
                         fullUrl = url + query;
                         if (this.proxy)
                             fullUrl = this.proxy + fullUrl;
-                        return [4 /*yield*/, fetch(fullUrl, this.options(method, params))
-                            // DataDome challenge detected — solve and retry once
+                        headers = this.requestHeaders(method);
+                        options = { method: method, headers: headers, redirect: "follow" };
+                        if (method === "POST" && params)
+                            options.body = JSON.stringify(params);
+                        return [4 /*yield*/, this.tlsFetch(fullUrl, options)
+                            // DataDome challenge — solve with TLS-fingerprinted session and retry
                         ];
                     case 3:
-                        response = _b.sent();
-                        if (!this.isDataDomeBlock(response)) return [3 /*break*/, 8];
-                        initialCid = this.extractDDCookie(response) || this.ddCookie;
-                        _b.label = 4;
+                        response = _c.sent();
+                        if (!(response.status === 403)) return [3 /*break*/, 8];
+                        setCookie = response.headers.get("set-cookie") || "";
+                        if (!setCookie.includes("datadome=")) return [3 /*break*/, 8];
+                        initialCid = ((_b = setCookie.match(/datadome=([^;]+)/)) === null || _b === void 0 ? void 0 : _b[1]) || this.ddCookie;
+                        _c.label = 4;
                     case 4:
-                        _b.trys.push([4, 7, , 8]);
+                        _c.trys.push([4, 7, , 8]);
                         _a = this;
                         return [4 /*yield*/, (0, DataDome_1.solveDataDome)(initialCid)];
                     case 5:
-                        _a.ddCookie = _b.sent();
-                        return [4 /*yield*/, fetch(fullUrl, this.options(method, params))];
+                        _a.ddCookie = _c.sent();
+                        retryHeaders = this.requestHeaders(method);
+                        retryOptions = { method: method, headers: retryHeaders, redirect: "follow" };
+                        if (method === "POST" && params)
+                            retryOptions.body = JSON.stringify(params);
+                        return [4 /*yield*/, this.tlsFetch(fullUrl, retryOptions)];
                     case 6:
-                        response = _b.sent();
+                        response = _c.sent();
                         return [3 /*break*/, 8];
                     case 7:
-                        e_1 = _b.sent();
+                        e_1 = _c.sent();
                         console.error("DataDome solve failed:", e_1);
                         return [3 /*break*/, 8];
                     case 8:
@@ -238,27 +271,19 @@ var API = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    /**
-     * Returns true if response looks like a DataDome block (403 with DD redirect).
-     */
-    API.prototype.isDataDomeBlock = function (response) {
-        if (response.status !== 403)
-            return false;
-        var cookie = response.headers.get("set-cookie") || "";
-        return cookie.includes("datadome=");
-    };
-    /**
-     * Extract datadome cookie from set-cookie header.
-     */
-    API.prototype.extractDDCookie = function (response) {
-        var _a;
-        var raw = response.headers.get("set-cookie") || "";
-        return ((_a = raw.match(/datadome=([^;]+)/)) === null || _a === void 0 ? void 0 : _a[1]) || null;
-    };
     API.headers = {
-        Origin: "https://soundcloud.com",
-        Referer: "https://soundcloud.com/",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+        "User-Agent": UA,
+        "sec-ch-ua": CH_UA,
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Linux"',
+        "Origin": "https://soundcloud.com",
+        "Referer": "https://soundcloud.com/",
+        "Accept": "application/json, text/javascript, */*; q=0.1",
+        "Sec-Fetch-Site": "same-site",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
     };
     return API;
 }());

@@ -1,14 +1,26 @@
-import { solveDataDome } from "./entities/DataDome"
+import { solveDataDome, getTlsSession } from "./entities/DataDome"
 
 const apiURL = "https://api.soundcloud.com"
 const apiV2URL = "https://api-v2.soundcloud.com"
 const webURL = "https://soundcloud.com"
 
+const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+const CH_UA = '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"'
+
 export class API {
     public static headers: {[key: string]: string} = {
-        Origin: "https://soundcloud.com",
-        Referer: "https://soundcloud.com/",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+        "User-Agent": UA,
+        "sec-ch-ua": CH_UA,
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Linux"',
+        "Origin": "https://soundcloud.com",
+        "Referer": "https://soundcloud.com/",
+        "Accept": "application/json, text/javascript, */*; q=0.1",
+        "Sec-Fetch-Site": "same-site",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
     }
     public clientId?: string
     public oauthToken?: string
@@ -32,33 +44,26 @@ export class API {
     public getURL = (URI: string, params?: {[key: string]: any}) => this.fetchRequest(URI, "GET", params)
     public post = (endpoint: string, params?: {[key: string]: any}) => this.fetchRequest(`${apiURL}/${endpoint}`, "POST", params)
 
-    private options = (method: string, params?: {[key: string]: any}) => {
+    /**
+     * Build request headers with DD cookie if available. No Cookie header (cross-origin SameSite=Lax).
+     */
+    private requestHeaders = (method: string) => {
         const headers: {[key: string]: string} = {...API.headers}
         if (this.ddCookie) headers["x-datadome-clientid"] = this.ddCookie
-        const options: RequestInit = {
-            method,
-            headers,
-            redirect: "follow"
+        return headers
+    }
+
+    /**
+     * Make a fetch request using TLS-fingerprinted session (wreq-js).
+     */
+    private tlsFetch = async (url: string, init: RequestInit): Promise<Response> => {
+        try {
+            const session = await getTlsSession()
+            return await session.fetch(url, init)
+        } catch {
+            // Fallback to native fetch if wreq-js fails
+            return await fetch(url, init)
         }
-        if (method === "POST" && params) options.body = JSON.stringify(params)
-        return options
-    }
-
-    /**
-     * Returns true if response looks like a DataDome block (403 with DD redirect).
-     */
-    private isDataDomeBlock(response: Response): boolean {
-        if (response.status !== 403) return false
-        const cookie = response.headers.get("set-cookie") || ""
-        return cookie.includes("datadome=")
-    }
-
-    /**
-     * Extract datadome cookie from set-cookie header.
-     */
-    private extractDDCookie(response: Response): string | null {
-        const raw = response.headers.get("set-cookie") || ""
-        return raw.match(/datadome=([^;]+)/)?.[1] || null
     }
 
     private fetchRequest = async (url: string, method: string, params?: {[key: string]: any}) => {
@@ -70,16 +75,26 @@ export class API {
         let fullUrl = url + query
         if (this.proxy) fullUrl = this.proxy + fullUrl
 
-        let response = await fetch(fullUrl, this.options(method, params))
+        const headers = this.requestHeaders(method)
+        const options: RequestInit = { method, headers, redirect: "follow" }
+        if (method === "POST" && params) options.body = JSON.stringify(params)
 
-        // DataDome challenge detected — solve and retry once
-        if (this.isDataDomeBlock(response)) {
-            const initialCid = this.extractDDCookie(response) || this.ddCookie
-            try {
-                this.ddCookie = await solveDataDome(initialCid)
-                response = await fetch(fullUrl, this.options(method, params))
-            } catch (e) {
-                console.error("DataDome solve failed:", e)
+        let response = await this.tlsFetch(fullUrl, options)
+
+        // DataDome challenge — solve with TLS-fingerprinted session and retry
+        if (response.status === 403) {
+            const setCookie = response.headers.get("set-cookie") || ""
+            if (setCookie.includes("datadome=")) {
+                const initialCid = setCookie.match(/datadome=([^;]+)/)?.[1] || this.ddCookie
+                try {
+                    this.ddCookie = await solveDataDome(initialCid)
+                    const retryHeaders = this.requestHeaders(method)
+                    const retryOptions: RequestInit = { method, headers: retryHeaders, redirect: "follow" }
+                    if (method === "POST" && params) retryOptions.body = JSON.stringify(params)
+                    response = await this.tlsFetch(fullUrl, retryOptions)
+                } catch (e) {
+                    console.error("DataDome solve failed:", e)
+                }
             }
         }
 
