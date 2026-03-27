@@ -1,7 +1,8 @@
 import { execFileSync } from 'child_process';
 import * as path from 'path';
 
-const SOLVER_BIN = path.join(__dirname, '..', 'bin', 'datadome-solver');
+// __dirname is dist/entities/ at runtime, so go up two levels to reach the package root
+const SOLVER_BIN = path.join(__dirname, '..', '..', 'bin', 'datadome-solver');
 const DDK = '7FC6D561817844F25B65CDD97F28A1';
 const DD_ENDPOINT = 'https://dwt.soundcloud.com/js/';
 const DDV = '5.5.1';

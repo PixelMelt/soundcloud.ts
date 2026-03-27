@@ -39,7 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.solveDataDome = void 0;
 var child_process_1 = require("child_process");
 var path = require("path");
-var SOLVER_BIN = path.join(__dirname, '..', 'bin', 'datadome-solver');
+// __dirname is dist/entities/ at runtime, so go up two levels to reach the package root
+var SOLVER_BIN = path.join(__dirname, '..', '..', 'bin', 'datadome-solver');
 var DDK = '7FC6D561817844F25B65CDD97F28A1';
 var DD_ENDPOINT = 'https://dwt.soundcloud.com/js/';
 var DDV = '5.5.1';
