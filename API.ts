@@ -92,11 +92,15 @@ export class API {
             try {
                 console.log("[DataDome] Challenge detected, solving...")
                 this.ddCookie = await solveDataDome(initialCid)
+                console.log("[DataDome] Got cookie:", this.ddCookie?.slice(0, 40) + "...")
                 const retryHeaders = this.requestHeaders(method)
+                console.log("[DataDome] Retry headers:", JSON.stringify(Object.keys(retryHeaders)))
                 const retryOptions: RequestInit = { method, headers: retryHeaders, redirect: "follow" }
                 if (method === "POST" && params) retryOptions.body = JSON.stringify(params)
                 response = await this.tlsFetch(fullUrl, retryOptions)
-                console.log("[DataDome] Solved, retry status:", response.status)
+                const retrySetCookie = response.headers.get("set-cookie") || ""
+                const retryDD = response.headers.get("x-datadome") || ""
+                console.log("[DataDome] Retry status:", response.status, "x-datadome:", retryDD, "set-cookie:", retrySetCookie.slice(0, 60))
             } catch (e) {
                 console.error("[DataDome] Solve failed:", e)
             }

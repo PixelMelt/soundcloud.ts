@@ -96,18 +96,18 @@ var API = /** @class */ (function () {
             });
         }); };
         this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
-            var query, fullUrl, headers, options, response, isDD, setCookie, initialCid, _a, retryHeaders, retryOptions, e_1, contentType;
-            var _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+            var query, fullUrl, headers, options, response, isDD, setCookie, initialCid, _a, retryHeaders, retryOptions, retrySetCookie, retryDD, e_1, contentType;
+            var _b, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         if (!params)
                             params = {};
                         if (!!this.clientId) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.getClientId()];
                     case 1:
-                        _c.sent();
-                        _c.label = 2;
+                        _d.sent();
+                        _d.label = 2;
                     case 2:
                         params.client_id = this.clientId;
                         if (this.oauthToken)
@@ -124,31 +124,35 @@ var API = /** @class */ (function () {
                             // DataDome challenge — any 403 with x-datadome header
                         ];
                     case 3:
-                        response = _c.sent();
+                        response = _d.sent();
                         isDD = response.status === 403 && (response.headers.get("x-datadome") ||
                             (response.headers.get("set-cookie") || "").includes("datadome="));
                         if (!isDD) return [3 /*break*/, 8];
                         setCookie = response.headers.get("set-cookie") || "";
                         initialCid = ((_b = setCookie.match(/datadome=([^;]+)/)) === null || _b === void 0 ? void 0 : _b[1]) || this.ddCookie;
-                        _c.label = 4;
+                        _d.label = 4;
                     case 4:
-                        _c.trys.push([4, 7, , 8]);
+                        _d.trys.push([4, 7, , 8]);
                         console.log("[DataDome] Challenge detected, solving...");
                         _a = this;
                         return [4 /*yield*/, (0, DataDome_1.solveDataDome)(initialCid)];
                     case 5:
-                        _a.ddCookie = _c.sent();
+                        _a.ddCookie = _d.sent();
+                        console.log("[DataDome] Got cookie:", ((_c = this.ddCookie) === null || _c === void 0 ? void 0 : _c.slice(0, 40)) + "...");
                         retryHeaders = this.requestHeaders(method);
+                        console.log("[DataDome] Retry headers:", JSON.stringify(Object.keys(retryHeaders)));
                         retryOptions = { method: method, headers: retryHeaders, redirect: "follow" };
                         if (method === "POST" && params)
                             retryOptions.body = JSON.stringify(params);
                         return [4 /*yield*/, this.tlsFetch(fullUrl, retryOptions)];
                     case 6:
-                        response = _c.sent();
-                        console.log("[DataDome] Solved, retry status:", response.status);
+                        response = _d.sent();
+                        retrySetCookie = response.headers.get("set-cookie") || "";
+                        retryDD = response.headers.get("x-datadome") || "";
+                        console.log("[DataDome] Retry status:", response.status, "x-datadome:", retryDD, "set-cookie:", retrySetCookie.slice(0, 60));
                         return [3 /*break*/, 8];
                     case 7:
-                        e_1 = _c.sent();
+                        e_1 = _d.sent();
                         console.error("[DataDome] Solve failed:", e_1);
                         return [3 /*break*/, 8];
                     case 8:
