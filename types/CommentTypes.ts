@@ -1,4 +1,5 @@
-import type {SoundcloudUserMini} from "./index"
+import { SoundcloudSearch } from "./APITypes"
+import type { SoundcloudUser } from "./UserTypes"
 
 export interface SoundcloudComment {
     kind: "comment"
@@ -8,9 +9,12 @@ export interface SoundcloudComment {
     track_id: number
     timestamp: number
     body: string
-    uri: string
-    user: SoundcloudUserMini
+    user: SoundcloudUser
     self: {
         urn: string
     }
+}
+
+export interface SoundcloudCommentSearch extends SoundcloudSearch {
+    collection: SoundcloudComment[]
 }

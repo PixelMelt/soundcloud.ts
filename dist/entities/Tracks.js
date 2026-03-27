@@ -119,6 +119,52 @@ var Tracks = /** @class */ (function () {
             });
         };
         /**
+         * Fetches comments from a track by ID using the Soundcloud V2 API
+         */
+        this.comments = function (trackResolvable) { return __awaiter(_this, void 0, void 0, function () {
+            var trackID, params, response, nextHref, _loop_1, this_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.resolve.get(trackResolvable)];
+                    case 1:
+                        trackID = _a.sent();
+                        params = { threaded: 1 } //Yes, this is neccesary. Why? Because Soundcloud.
+                        ;
+                        return [4 /*yield*/, this.api.getV2("/tracks/".concat(trackID, "/comments"), params)];
+                    case 2:
+                        response = _a.sent();
+                        nextHref = response.next_href;
+                        _loop_1 = function () {
+                            var url, params_1, nextPage;
+                            var _b;
+                            return __generator(this, function (_c) {
+                                switch (_c.label) {
+                                    case 0:
+                                        url = new URL(nextHref);
+                                        params_1 = { threaded: 1 };
+                                        url.searchParams.forEach(function (value, key) { return (params_1[key] = value); });
+                                        return [4 /*yield*/, this_1.api.getURL(url.origin + url.pathname, params_1)];
+                                    case 1:
+                                        nextPage = _c.sent();
+                                        (_b = response.collection).push.apply(_b, nextPage.collection);
+                                        nextHref = nextPage.next_href;
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_1 = this;
+                        _a.label = 3;
+                    case 3:
+                        if (!nextHref) return [3 /*break*/, 5];
+                        return [5 /*yield**/, _loop_1()];
+                    case 4:
+                        _a.sent();
+                        return [3 /*break*/, 3];
+                    case 5: return [2 /*return*/, response.collection];
+                }
+            });
+        }); };
+        /**
          * Searches for tracks (web scraping)
          */
         this.searchAlt = function (query) { return __awaiter(_this, void 0, void 0, function () {

@@ -1,4 +1,4 @@
-import type { SoundcloudTrackFilter, SoundcloudTrackSearch, SoundcloudTrack } from "../types";
+import type { SoundcloudTrackFilter, SoundcloudTrackSearch, SoundcloudTrack, SoundcloudComment } from "../types";
 import { API } from "../API";
 export declare class Tracks {
     private readonly api;
@@ -16,6 +16,10 @@ export declare class Tracks {
      * Fetches tracks from an array of ID using Soundcloud v2 API.
      */
     getArray: (trackIds: number[], keepOrder?: boolean) => Promise<SoundcloudTrack[]>;
+    /**
+     * Fetches comments from a track by ID using the Soundcloud V2 API
+     */
+    comments: (trackResolvable: string | number) => Promise<SoundcloudComment[]>;
     /**
      * Searches for tracks (web scraping)
      */

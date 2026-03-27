@@ -40,13 +40,13 @@ var soundcloud_1 = require("./soundcloud");
 require("dotenv").config();
 var soundcloud = new soundcloud_1.default();
 (function () { return __awaiter(void 0, void 0, void 0, function () {
-    var result;
+    var title;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, soundcloud.util.downloadTrack("https://soundcloud.com/5tereomanjpn/aire-tea-timestereoman-remix", "./tracks")];
+            case 0: return [4 /*yield*/, soundcloud.util.getTitle("https://soundcloud.com/5tereomanjpn/aire-tea-timestereoman-remix")];
             case 1:
-                result = _a.sent();
-                console.log(result);
+                title = _a.sent();
+                console.log(title);
                 return [2 /*return*/];
         }
     });

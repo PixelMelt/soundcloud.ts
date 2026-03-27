@@ -3,15 +3,6 @@ import "mocha";
 import { soundcloud } from "./login";
 
 describe("Tracks", function () {
-  // test download divetotheheart/q9lrztc7lq4h
-  //   it("should get a track", async function () {
-  //     const response = await soundcloud.util.downloadTrack(
-  //       "https://soundcloud.com/divetotheheart/q9lrztc7lq4h"
-  //     );
-
-  //     assert(Object.prototype.hasOwnProperty.call(response, "description"));
-  //   });
-
   it("should get a track", async function () {
     const response = await soundcloud.tracks.get(
       "https://soundcloud.com/nocopyrightsounds/jonth-soundclash-ncs-release"
@@ -27,5 +18,10 @@ describe("Tracks", function () {
         "description"
       )
     );
+  });
+
+  it("should get track comments", async function () {
+    const response = await soundcloud.tracks.comments("https://soundcloud.com/ivycomb/heat");
+    assert(Object.prototype.hasOwnProperty.call(response[0], "body"));
   });
 });

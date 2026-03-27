@@ -4,3 +4,4 @@ export * from "./Tracks";
 export * from "./Resolve";
 export * from "./Users";
 export * from "./Util";
+export * from "./DataDome";

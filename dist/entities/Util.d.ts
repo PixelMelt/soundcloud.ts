@@ -22,6 +22,7 @@ export declare class Util {
     private readonly mergeFiles;
     private readonly checkFFmpeg;
     private readonly spawnFFmpeg;
+    private webToNodeStream;
     /**
      * Readable stream of m3u playlists.
      */
@@ -58,6 +59,10 @@ export declare class Util {
      * Returns a readable stream to the track.
      */
     streamTrack: (trackResolvable: string | SoundcloudTrack) => Promise<NodeJS.ReadableStream>;
+    /**
+     * Gets a track title from the page.
+     */
+    getTitle: (songUrl: string) => Promise<string>;
     /**
      * Downloads a track's song cover.
      */

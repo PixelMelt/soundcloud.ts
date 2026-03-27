@@ -1,3 +1,5 @@
+import { solveDataDome } from "./entities/DataDome"
+
 const apiURL = "https://api.soundcloud.com"
 const apiV2URL = "https://api-v2.soundcloud.com"
 const webURL = "https://soundcloud.com"
@@ -6,11 +8,12 @@ export class API {
     public static headers: {[key: string]: string} = {
         Origin: "https://soundcloud.com",
         Referer: "https://soundcloud.com/",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.67"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
     }
     public clientId?: string
     public oauthToken?: string
     public proxy?: string
+    private ddCookie?: string
 
     public constructor(clientId?: string, oauthToken?: string, proxy?: string) {
         this.clientId = clientId
@@ -30,13 +33,32 @@ export class API {
     public post = (endpoint: string, params?: {[key: string]: any}) => this.fetchRequest(`${apiURL}/${endpoint}`, "POST", params)
 
     private options = (method: string, params?: {[key: string]: any}) => {
+        const headers: {[key: string]: string} = {...API.headers}
+        if (this.ddCookie) headers["x-datadome-clientid"] = this.ddCookie
         const options: RequestInit = {
             method,
-            headers: {...API.headers},
+            headers,
             redirect: "follow"
         }
         if (method === "POST" && params) options.body = JSON.stringify(params)
         return options
+    }
+
+    /**
+     * Returns true if response looks like a DataDome block (403 with DD redirect).
+     */
+    private isDataDomeBlock(response: Response): boolean {
+        if (response.status !== 403) return false
+        const cookie = response.headers.get("set-cookie") || ""
+        return cookie.includes("datadome=")
+    }
+
+    /**
+     * Extract datadome cookie from set-cookie header.
+     */
+    private extractDDCookie(response: Response): string | null {
+        const raw = response.headers.get("set-cookie") || ""
+        return raw.match(/datadome=([^;]+)/)?.[1] || null
     }
 
     private fetchRequest = async (url: string, method: string, params?: {[key: string]: any}) => {
@@ -45,9 +67,22 @@ export class API {
         params.client_id = this.clientId
         if (this.oauthToken) params.oauth_token = this.oauthToken
         const query = params ? "?" + new URLSearchParams(params).toString() : ""
-        url += query
-        if (this.proxy) url = this.proxy + url
-        const response = await fetch(url, this.options(method, params))
+        let fullUrl = url + query
+        if (this.proxy) fullUrl = this.proxy + fullUrl
+
+        let response = await fetch(fullUrl, this.options(method, params))
+
+        // DataDome challenge detected — solve and retry once
+        if (this.isDataDomeBlock(response)) {
+            const initialCid = this.extractDDCookie(response) || this.ddCookie
+            try {
+                this.ddCookie = await solveDataDome(initialCid)
+                response = await fetch(fullUrl, this.options(method, params))
+            } catch (e) {
+                console.error("DataDome solve failed:", e)
+            }
+        }
+
         if (!response.ok) throw new Error(`Status code ${response.status}`)
         const contentType = response.headers.get("content-type")
         return contentType && contentType.includes("application/json") ? response.json() : response.text()

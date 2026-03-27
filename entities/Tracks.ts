@@ -1,4 +1,4 @@
-import type {SoundcloudTrackFilter, SoundcloudTrackSearch, SoundcloudTrack} from "../types"
+import type {SoundcloudTrackFilter, SoundcloudTrackSearch, SoundcloudTrack, SoundcloudComment, SoundcloudCommentSearch} from "../types"
 import {API} from "../API"
 import {Resolve} from "./index"
 
@@ -37,6 +37,25 @@ export class Tracks {
         const result = response.concat(...tracks)
         if (keepOrder) return result.sort((a, b) => trackIds.indexOf(a.id) - trackIds.indexOf(b.id));
         return result
+    }
+
+    /**
+     * Fetches comments from a track by ID using the Soundcloud V2 API
+     */
+    public comments = async (trackResolvable: string | number) => {
+        const trackID = await this.resolve.get(trackResolvable)
+        const params = {threaded:1} //Yes, this is neccesary. Why? Because Soundcloud.
+        const response = <SoundcloudCommentSearch>await this.api.getV2(`/tracks/${trackID}/comments`, params)
+        let nextHref = response.next_href
+        while (nextHref) {
+            const url = new URL(nextHref)
+            const params = {threaded:1}
+            url.searchParams.forEach((value, key) => (params[key] = value))
+            const nextPage = <SoundcloudCommentSearch>await this.api.getURL(url.origin + url.pathname, params)
+            response.collection.push(...nextPage.collection)
+            nextHref = nextPage.next_href
+        }
+        return response.collection as SoundcloudComment[]
     }
 
     /**

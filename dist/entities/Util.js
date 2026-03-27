@@ -284,6 +284,30 @@ var Util = /** @class */ (function () {
                 throw 'FFmpeg error';
             }
         };
+        this.webToNodeStream = function (webStream) {
+            var reader = webStream.getReader();
+            return new stream_1.Readable({
+                read: function () {
+                    return __awaiter(this, void 0, void 0, function () {
+                        var _a, done, value;
+                        return __generator(this, function (_b) {
+                            switch (_b.label) {
+                                case 0: return [4 /*yield*/, reader.read()];
+                                case 1:
+                                    _a = _b.sent(), done = _a.done, value = _a.value;
+                                    if (done) {
+                                        this.push(null);
+                                    }
+                                    else {
+                                        this.push(value);
+                                    }
+                                    return [2 /*return*/];
+                            }
+                        });
+                    });
+                },
+            });
+        };
         /**
          * Readable stream of m3u playlists.
          */
@@ -755,6 +779,28 @@ var Util = /** @class */ (function () {
                         stream = (_a.sent()).stream;
                         return [2 /*return*/, stream];
                     case 7: return [2 /*return*/];
+                }
+            });
+        }); };
+        /**
+         * Gets a track title from the page.
+         */
+        this.getTitle = function (songUrl) { return __awaiter(_this, void 0, void 0, function () {
+            var headers, html, title;
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        headers = {
+                            referer: 'soundcloud.com',
+                            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36',
+                        };
+                        return [4 /*yield*/, fetch(songUrl, { headers: headers }).then(function (r) { return r.text(); })];
+                    case 1:
+                        html = _c.sent();
+                        title = (_b = (_a = html
+                            .match(/(?<="og:title" content=")(.*?)(?=")/)) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.replace(/\//g, '');
+                        return [2 /*return*/, title];
                 }
             });
         }); };

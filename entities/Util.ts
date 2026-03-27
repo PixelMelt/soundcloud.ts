@@ -171,6 +171,20 @@ export class Util {
 		}
 	};
 
+	private webToNodeStream = (webStream: ReadableStream<Uint8Array>) => {
+		const reader = webStream.getReader();
+		return new Readable({
+			async read() {
+				const { done, value } = await reader.read();
+				if (done) {
+					this.push(null);
+				} else {
+					this.push(value);
+				}
+			},
+		});
+	};
+
 	/**
 	 * Readable stream of m3u playlists.
 	 */
@@ -509,6 +523,22 @@ export class Util {
 			const { stream } = await this.m3uReadableStream(trackResolvable);
 			return stream;
 		}
+	};
+
+	/**
+	 * Gets a track title from the page.
+	 */
+	public getTitle = async (songUrl: string) => {
+		const headers = {
+			referer: 'soundcloud.com',
+			'user-agent':
+				'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36',
+		};
+		const html = await fetch(songUrl, { headers }).then((r) => r.text());
+		const title = html
+			.match(/(?<="og:title" content=")(.*?)(?=")/)?.[0]
+			?.replace(/\//g, '');
+		return title;
 	};
 
 	/**

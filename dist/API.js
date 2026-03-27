@@ -48,6 +48,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.API = void 0;
+var DataDome_1 = require("./entities/DataDome");
 var apiURL = "https://api.soundcloud.com";
 var apiV2URL = "https://api-v2.soundcloud.com";
 var webURL = "https://soundcloud.com";
@@ -60,9 +61,12 @@ var API = /** @class */ (function () {
         this.getURL = function (URI, params) { return _this.fetchRequest(URI, "GET", params); };
         this.post = function (endpoint, params) { return _this.fetchRequest("".concat(apiURL, "/").concat(endpoint), "POST", params); };
         this.options = function (method, params) {
+            var headers = __assign({}, API.headers);
+            if (_this.ddCookie)
+                headers["x-datadome-clientid"] = _this.ddCookie;
             var options = {
                 method: method,
-                headers: __assign({}, API.headers),
+                headers: headers,
                 redirect: "follow"
             };
             if (method === "POST" && params)
@@ -70,28 +74,48 @@ var API = /** @class */ (function () {
             return options;
         };
         this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
-            var query, response, contentType;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var query, fullUrl, response, initialCid, _a, e_1, contentType;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
                         if (!params)
                             params = {};
                         if (!!this.clientId) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.getClientId()];
                     case 1:
-                        _a.sent();
-                        _a.label = 2;
+                        _b.sent();
+                        _b.label = 2;
                     case 2:
                         params.client_id = this.clientId;
                         if (this.oauthToken)
                             params.oauth_token = this.oauthToken;
                         query = params ? "?" + new URLSearchParams(params).toString() : "";
-                        url += query;
+                        fullUrl = url + query;
                         if (this.proxy)
-                            url = this.proxy + url;
-                        return [4 /*yield*/, fetch(url, this.options(method, params))];
+                            fullUrl = this.proxy + fullUrl;
+                        return [4 /*yield*/, fetch(fullUrl, this.options(method, params))
+                            // DataDome challenge detected — solve and retry once
+                        ];
                     case 3:
-                        response = _a.sent();
+                        response = _b.sent();
+                        if (!this.isDataDomeBlock(response)) return [3 /*break*/, 8];
+                        initialCid = this.extractDDCookie(response) || this.ddCookie;
+                        _b.label = 4;
+                    case 4:
+                        _b.trys.push([4, 7, , 8]);
+                        _a = this;
+                        return [4 /*yield*/, (0, DataDome_1.solveDataDome)(initialCid)];
+                    case 5:
+                        _a.ddCookie = _b.sent();
+                        return [4 /*yield*/, fetch(fullUrl, this.options(method, params))];
+                    case 6:
+                        response = _b.sent();
+                        return [3 /*break*/, 8];
+                    case 7:
+                        e_1 = _b.sent();
+                        console.error("DataDome solve failed:", e_1);
+                        return [3 /*break*/, 8];
+                    case 8:
                         if (!response.ok)
                             throw new Error("Status code ".concat(response.status));
                         contentType = response.headers.get("content-type");
@@ -214,10 +238,27 @@ var API = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
+    /**
+     * Returns true if response looks like a DataDome block (403 with DD redirect).
+     */
+    API.prototype.isDataDomeBlock = function (response) {
+        if (response.status !== 403)
+            return false;
+        var cookie = response.headers.get("set-cookie") || "";
+        return cookie.includes("datadome=");
+    };
+    /**
+     * Extract datadome cookie from set-cookie header.
+     */
+    API.prototype.extractDDCookie = function (response) {
+        var _a;
+        var raw = response.headers.get("set-cookie") || "";
+        return ((_a = raw.match(/datadome=([^;]+)/)) === null || _a === void 0 ? void 0 : _a[1]) || null;
+    };
     API.headers = {
         Origin: "https://soundcloud.com",
         Referer: "https://soundcloud.com/",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.67"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
     };
     return API;
 }());
