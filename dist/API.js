@@ -96,7 +96,7 @@ var API = /** @class */ (function () {
             });
         }); };
         this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
-            var query, fullUrl, headers, options, response, isDD, setCookie, initialCid, _a, retryHeaders, retryOptions, retrySetCookie, retryDD, e_1, contentType;
+            var query, fullUrl, headers, options, response, isDD, setCookie, initialCid, _a, retryHeaders, retryOptions, e_1, contentType;
             var _b, _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
@@ -134,22 +134,22 @@ var API = /** @class */ (function () {
                     case 4:
                         _d.trys.push([4, 7, , 8]);
                         console.log("[DataDome] Challenge detected, solving...");
+                        // Reset session to clear the bad datadome cookie from the jar,
+                        // then solve on the fresh session — same session used for retry
+                        (0, DataDome_1.resetTlsSession)();
                         _a = this;
                         return [4 /*yield*/, (0, DataDome_1.solveDataDome)(initialCid)];
                     case 5:
                         _a.ddCookie = _d.sent();
-                        console.log("[DataDome] Got cookie:", ((_c = this.ddCookie) === null || _c === void 0 ? void 0 : _c.slice(0, 40)) + "...");
+                        console.log("[DataDome] Solved, cookie:", ((_c = this.ddCookie) === null || _c === void 0 ? void 0 : _c.slice(0, 40)) + "...");
                         retryHeaders = this.requestHeaders(method);
-                        console.log("[DataDome] Retry headers:", JSON.stringify(Object.keys(retryHeaders)));
                         retryOptions = { method: method, headers: retryHeaders, redirect: "follow" };
                         if (method === "POST" && params)
                             retryOptions.body = JSON.stringify(params);
                         return [4 /*yield*/, this.tlsFetch(fullUrl, retryOptions)];
                     case 6:
                         response = _d.sent();
-                        retrySetCookie = response.headers.get("set-cookie") || "";
-                        retryDD = response.headers.get("x-datadome") || "";
-                        console.log("[DataDome] Retry status:", response.status, "x-datadome:", retryDD, "set-cookie:", retrySetCookie.slice(0, 60));
+                        console.log("[DataDome] Retry:", response.status);
                         return [3 /*break*/, 8];
                     case 7:
                         e_1 = _d.sent();

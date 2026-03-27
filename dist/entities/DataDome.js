@@ -54,8 +54,25 @@ function generatePayload(cid, bpc) {
     var result = (0, child_process_1.execFileSync)(SOLVER_BIN, args, { encoding: 'utf-8', timeout: 5000 });
     return JSON.parse(result.trim());
 }
+/** DD POST headers matching Chrome's exact order (per FINDINGS.md). */
+var DD_HEADERS = {
+    'sec-ch-ua-platform': '"Linux"',
+    'User-Agent': UA,
+    'sec-ch-ua': CH_UA,
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'sec-ch-ua-mobile': '?0',
+    Accept: '*/*',
+    Origin: 'https://soundcloud.com',
+    'Sec-Fetch-Site': 'same-site',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Dest': 'empty',
+    Referer: 'https://soundcloud.com/',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    'Accept-Language': 'en-US,en;q=0.9',
+};
 /**
- * TLS-fingerprinted session. Recreated after each DD solve to clear the cookie jar.
+ * Single TLS session for all requests. DD ties cookie trust to TLS fingerprint,
+ * so the solve and API requests MUST share the same session.
  */
 var _session = null;
 function getTlsSession() {
@@ -85,7 +102,7 @@ function resetTlsSession() {
 }
 exports.resetTlsSession = resetTlsSession;
 /**
- * POST to the DD endpoint using a separate session (no stale cookies).
+ * POST to the DD endpoint.
  */
 function ddPost(session, cid, bpc) {
     return __awaiter(this, void 0, void 0, function () {
@@ -108,21 +125,7 @@ function ddPost(session, cid, bpc) {
                     });
                     return [4 /*yield*/, session.fetch(DD_ENDPOINT, {
                             method: 'POST',
-                            headers: {
-                                'sec-ch-ua-platform': '"Linux"',
-                                'User-Agent': UA,
-                                'sec-ch-ua': CH_UA,
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'sec-ch-ua-mobile': '?0',
-                                Accept: '*/*',
-                                Origin: 'https://soundcloud.com',
-                                'Sec-Fetch-Site': 'same-site',
-                                'Sec-Fetch-Mode': 'cors',
-                                'Sec-Fetch-Dest': 'empty',
-                                Referer: 'https://soundcloud.com/',
-                                'Accept-Encoding': 'gzip, deflate, br, zstd',
-                                'Accept-Language': 'en-US,en;q=0.9',
-                            },
+                            headers: DD_HEADERS,
                             body: body.toString(),
                         })];
                 case 1:
@@ -137,47 +140,35 @@ function ddPost(session, cid, bpc) {
     });
 }
 /**
- * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1.
- * Uses a dedicated session for the solve, then resets the main session
- * so the API retry uses a clean cookie jar with only x-datadome-clientid.
+ * Solve a DataDome challenge on the SAME session used for API requests.
+ * DD ties cookie trust to TLS fingerprint — different session = low trust.
+ *
+ * bpc=1 → bpc=2 → bpc=1, returns valid datadome cookie ID.
  */
 function solveDataDome(initialCid) {
     return __awaiter(this, void 0, void 0, function () {
-        var solveSession, cid;
+        var session, cid;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, (0, wreq_js_1.createSession)({ browser: 'chrome_145' })];
+                case 0: return [4 /*yield*/, getTlsSession()];
                 case 1:
-                    solveSession = _a.sent();
+                    session = _a.sent();
                     cid = initialCid || '.keep';
-                    _a.label = 2;
+                    return [4 /*yield*/, ddPost(session, cid, 1)];
                 case 2:
-                    _a.trys.push([2, , 8, 9]);
-                    return [4 /*yield*/, ddPost(solveSession, cid, 1)];
-                case 3:
                     cid = _a.sent();
                     return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 800 + Math.random() * 500); })];
-                case 4:
+                case 3:
                     _a.sent();
-                    return [4 /*yield*/, ddPost(solveSession, cid, 2)];
-                case 5:
+                    return [4 /*yield*/, ddPost(session, cid, 2)];
+                case 4:
                     cid = _a.sent();
                     return [4 /*yield*/, new Promise(function (r) { return setTimeout(r, 1500 + Math.random() * 1000); })];
-                case 6:
+                case 5:
                     _a.sent();
-                    return [4 /*yield*/, ddPost(solveSession, cid, 1)];
-                case 7:
+                    return [4 /*yield*/, ddPost(session, cid, 1)];
+                case 6:
                     cid = _a.sent();
-                    return [3 /*break*/, 9];
-                case 8:
-                    try {
-                        solveSession.close();
-                    }
-                    catch (_b) { }
-                    return [7 /*endfinally*/];
-                case 9:
-                    // Reset the main API session so the retry starts with a clean cookie jar
-                    resetTlsSession();
                     return [2 /*return*/, cid];
             }
         });

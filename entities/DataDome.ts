@@ -25,8 +25,26 @@ function generatePayload(cid: string, bpc: number): SolverOutput {
 	return JSON.parse(result.trim());
 }
 
+/** DD POST headers matching Chrome's exact order (per FINDINGS.md). */
+const DD_HEADERS = {
+	'sec-ch-ua-platform': '"Linux"',
+	'User-Agent': UA,
+	'sec-ch-ua': CH_UA,
+	'Content-Type': 'application/x-www-form-urlencoded',
+	'sec-ch-ua-mobile': '?0',
+	Accept: '*/*',
+	Origin: 'https://soundcloud.com',
+	'Sec-Fetch-Site': 'same-site',
+	'Sec-Fetch-Mode': 'cors',
+	'Sec-Fetch-Dest': 'empty',
+	Referer: 'https://soundcloud.com/',
+	'Accept-Encoding': 'gzip, deflate, br, zstd',
+	'Accept-Language': 'en-US,en;q=0.9',
+};
+
 /**
- * TLS-fingerprinted session. Recreated after each DD solve to clear the cookie jar.
+ * Single TLS session for all requests. DD ties cookie trust to TLS fingerprint,
+ * so the solve and API requests MUST share the same session.
  */
 let _session: any = null;
 export async function getTlsSession(): Promise<any> {
@@ -44,7 +62,7 @@ export function resetTlsSession(): void {
 }
 
 /**
- * POST to the DD endpoint using a separate session (no stale cookies).
+ * POST to the DD endpoint.
  */
 async function ddPost(session: any, cid: string, bpc: number): Promise<string> {
 	const payload = generatePayload(cid, bpc);
@@ -63,21 +81,7 @@ async function ddPost(session: any, cid: string, bpc: number): Promise<string> {
 
 	const res = await session.fetch(DD_ENDPOINT, {
 		method: 'POST',
-		headers: {
-			'sec-ch-ua-platform': '"Linux"',
-			'User-Agent': UA,
-			'sec-ch-ua': CH_UA,
-			'Content-Type': 'application/x-www-form-urlencoded',
-			'sec-ch-ua-mobile': '?0',
-			Accept: '*/*',
-			Origin: 'https://soundcloud.com',
-			'Sec-Fetch-Site': 'same-site',
-			'Sec-Fetch-Mode': 'cors',
-			'Sec-Fetch-Dest': 'empty',
-			Referer: 'https://soundcloud.com/',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
-			'Accept-Language': 'en-US,en;q=0.9',
-		},
+		headers: DD_HEADERS,
 		body: body.toString(),
 	});
 
@@ -87,28 +91,21 @@ async function ddPost(session: any, cid: string, bpc: number): Promise<string> {
 }
 
 /**
- * Solve a DataDome challenge: bpc=1 → bpc=2 → bpc=1.
- * Uses a dedicated session for the solve, then resets the main session
- * so the API retry uses a clean cookie jar with only x-datadome-clientid.
+ * Solve a DataDome challenge on the SAME session used for API requests.
+ * DD ties cookie trust to TLS fingerprint — different session = low trust.
+ *
+ * bpc=1 → bpc=2 → bpc=1, returns valid datadome cookie ID.
  */
 export async function solveDataDome(initialCid?: string): Promise<string> {
-	// Use a dedicated session for the solve POSTs so the main session's
-	// cookie jar doesn't get polluted with DD cookies
-	const solveSession = await createSession({ browser: 'chrome_145' });
+	// Use the shared session — same TLS fingerprint as the API retry
+	const session = await getTlsSession();
 	let cid = initialCid || '.keep';
 
-	try {
-		cid = await ddPost(solveSession, cid, 1);
-		await new Promise((r) => setTimeout(r, 800 + Math.random() * 500));
-		cid = await ddPost(solveSession, cid, 2);
-		await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
-		cid = await ddPost(solveSession, cid, 1);
-	} finally {
-		try { solveSession.close(); } catch {}
-	}
-
-	// Reset the main API session so the retry starts with a clean cookie jar
-	resetTlsSession();
+	cid = await ddPost(session, cid, 1);
+	await new Promise((r) => setTimeout(r, 800 + Math.random() * 500));
+	cid = await ddPost(session, cid, 2);
+	await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
+	cid = await ddPost(session, cid, 1);
 
 	return cid;
 }

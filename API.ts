@@ -1,4 +1,4 @@
-import { solveDataDome, getTlsSession } from "./entities/DataDome"
+import { solveDataDome, getTlsSession, resetTlsSession } from "./entities/DataDome"
 
 const apiURL = "https://api.soundcloud.com"
 const apiV2URL = "https://api-v2.soundcloud.com"
@@ -91,16 +91,16 @@ export class API {
             const initialCid = setCookie.match(/datadome=([^;]+)/)?.[1] || this.ddCookie
             try {
                 console.log("[DataDome] Challenge detected, solving...")
+                // Reset session to clear the bad datadome cookie from the jar,
+                // then solve on the fresh session — same session used for retry
+                resetTlsSession()
                 this.ddCookie = await solveDataDome(initialCid)
-                console.log("[DataDome] Got cookie:", this.ddCookie?.slice(0, 40) + "...")
+                console.log("[DataDome] Solved, cookie:", this.ddCookie?.slice(0, 40) + "...")
                 const retryHeaders = this.requestHeaders(method)
-                console.log("[DataDome] Retry headers:", JSON.stringify(Object.keys(retryHeaders)))
                 const retryOptions: RequestInit = { method, headers: retryHeaders, redirect: "follow" }
                 if (method === "POST" && params) retryOptions.body = JSON.stringify(params)
                 response = await this.tlsFetch(fullUrl, retryOptions)
-                const retrySetCookie = response.headers.get("set-cookie") || ""
-                const retryDD = response.headers.get("x-datadome") || ""
-                console.log("[DataDome] Retry status:", response.status, "x-datadome:", retryDD, "set-cookie:", retrySetCookie.slice(0, 60))
+                console.log("[DataDome] Retry:", response.status)
             } catch (e) {
                 console.error("[DataDome] Solve failed:", e)
             }
