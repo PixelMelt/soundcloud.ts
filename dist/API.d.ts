@@ -6,6 +6,7 @@ export declare class API {
     oauthToken?: string;
     proxy?: string;
     private ddCookie?;
+    private ddReady;
     constructor(clientId?: string, oauthToken?: string, proxy?: string);
     get headers(): {
         [key: string]: string;
@@ -25,17 +26,21 @@ export declare class API {
     post: (endpoint: string, params?: {
         [key: string]: any;
     }) => Promise<any>;
-    /**
-     * Build request headers with DD cookie if available. No Cookie header (cross-origin SameSite=Lax).
-     */
     private requestHeaders;
     /**
-     * Make a fetch request using TLS-fingerprinted session (wreq-js).
+     * TLS-fingerprinted fetch via wreq-js.
      */
     private tlsFetch;
+    /**
+     * Proactively solve DD before first API request.
+     */
+    private ensureDD;
     private fetchRequest;
     private getRequest;
-    getClientIdWeb: () => Promise<string>;
+    /**
+     * Scrape client_id from SC website. Uses TLS session to avoid tainting IP.
+     */
+    getClientIdWeb: () => Promise<any>;
     getClientIdMobile: () => Promise<string>;
     getClientId: (reset?: boolean) => Promise<string>;
 }

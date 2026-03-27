@@ -57,14 +57,12 @@ var CH_UA = '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"';
 var API = /** @class */ (function () {
     function API(clientId, oauthToken, proxy) {
         var _this = this;
+        this.ddReady = false;
         this.get = function (endpoint, params) { return _this.getRequest(apiURL, endpoint, params); };
         this.getV2 = function (endpoint, params) { return _this.getRequest(apiV2URL, endpoint, params); };
         this.getWebsite = function (endpoint, params) { return _this.getRequest(webURL, endpoint, params); };
         this.getURL = function (URI, params) { return _this.fetchRequest(URI, "GET", params); };
         this.post = function (endpoint, params) { return _this.fetchRequest("".concat(apiURL, "/").concat(endpoint), "POST", params); };
-        /**
-         * Build request headers with DD cookie if available. No Cookie header (cross-origin SameSite=Lax).
-         */
         this.requestHeaders = function (method) {
             var headers = __assign({}, API.headers);
             if (_this.ddCookie)
@@ -72,7 +70,7 @@ var API = /** @class */ (function () {
             return headers;
         };
         /**
-         * Make a fetch request using TLS-fingerprinted session (wreq-js).
+         * TLS-fingerprinted fetch via wreq-js.
          */
         this.tlsFetch = function (url, init) { return __awaiter(_this, void 0, void 0, function () {
             var session, _a;
@@ -88,15 +86,43 @@ var API = /** @class */ (function () {
                     case 3:
                         _a = _b.sent();
                         return [4 /*yield*/, fetch(url, init)];
-                    case 4: 
-                    // Fallback to native fetch if wreq-js fails
-                    return [2 /*return*/, _b.sent()];
+                    case 4: return [2 /*return*/, _b.sent()];
                     case 5: return [2 /*return*/];
                 }
             });
         }); };
+        /**
+         * Proactively solve DD before first API request.
+         */
+        this.ensureDD = function () { return __awaiter(_this, void 0, void 0, function () {
+            var _a, e_1;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (this.ddReady)
+                            return [2 /*return*/];
+                        this.ddReady = true;
+                        _c.label = 1;
+                    case 1:
+                        _c.trys.push([1, 3, , 4]);
+                        console.log("[DataDome] Proactive solve...");
+                        _a = this;
+                        return [4 /*yield*/, (0, DataDome_1.solveDataDome)()];
+                    case 2:
+                        _a.ddCookie = _c.sent();
+                        console.log("[DataDome] Ready, cookie:", ((_b = this.ddCookie) === null || _b === void 0 ? void 0 : _b.slice(0, 40)) + "...");
+                        return [3 /*break*/, 4];
+                    case 3:
+                        e_1 = _c.sent();
+                        console.error("[DataDome] Proactive solve failed:", e_1);
+                        return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/];
+                }
+            });
+        }); };
         this.fetchRequest = function (url, method, params) { return __awaiter(_this, void 0, void 0, function () {
-            var query, fullUrl, headers, options, response, isDD, setCookie, initialCid, _a, retryHeaders, retryOptions, e_1, contentType;
+            var query, fullUrl, headers, options, response, isDD, setCookie, initialCid, _a, retryHeaders, retryOptions, e_2, contentType;
             var _b, _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
@@ -112,6 +138,11 @@ var API = /** @class */ (function () {
                         params.client_id = this.clientId;
                         if (this.oauthToken)
                             params.oauth_token = this.oauthToken;
+                        // Solve DD before first real API request
+                        return [4 /*yield*/, this.ensureDD()];
+                    case 3:
+                        // Solve DD before first real API request
+                        _d.sent();
                         query = params ? "?" + new URLSearchParams(params).toString() : "";
                         fullUrl = url + query;
                         if (this.proxy)
@@ -121,25 +152,23 @@ var API = /** @class */ (function () {
                         if (method === "POST" && params)
                             options.body = JSON.stringify(params);
                         return [4 /*yield*/, this.tlsFetch(fullUrl, options)
-                            // DataDome challenge — any 403 with x-datadome header
+                            // DD challenge — solve and retry once
                         ];
-                    case 3:
+                    case 4:
                         response = _d.sent();
                         isDD = response.status === 403 && (response.headers.get("x-datadome") ||
                             (response.headers.get("set-cookie") || "").includes("datadome="));
-                        if (!isDD) return [3 /*break*/, 8];
+                        if (!isDD) return [3 /*break*/, 9];
                         setCookie = response.headers.get("set-cookie") || "";
                         initialCid = ((_b = setCookie.match(/datadome=([^;]+)/)) === null || _b === void 0 ? void 0 : _b[1]) || this.ddCookie;
-                        _d.label = 4;
-                    case 4:
-                        _d.trys.push([4, 7, , 8]);
-                        console.log("[DataDome] Challenge detected, solving...");
-                        // Reset session to clear the bad datadome cookie from the jar,
-                        // then solve on the fresh session — same session used for retry
+                        _d.label = 5;
+                    case 5:
+                        _d.trys.push([5, 8, , 9]);
+                        console.log("[DataDome] Challenge on", method, url.replace(apiV2URL, "").replace(apiURL, "").split("?")[0]);
                         (0, DataDome_1.resetTlsSession)();
                         _a = this;
                         return [4 /*yield*/, (0, DataDome_1.solveDataDome)(initialCid)];
-                    case 5:
+                    case 6:
                         _a.ddCookie = _d.sent();
                         console.log("[DataDome] Solved, cookie:", ((_c = this.ddCookie) === null || _c === void 0 ? void 0 : _c.slice(0, 40)) + "...");
                         retryHeaders = this.requestHeaders(method);
@@ -147,15 +176,15 @@ var API = /** @class */ (function () {
                         if (method === "POST" && params)
                             retryOptions.body = JSON.stringify(params);
                         return [4 /*yield*/, this.tlsFetch(fullUrl, retryOptions)];
-                    case 6:
+                    case 7:
                         response = _d.sent();
                         console.log("[DataDome] Retry:", response.status);
-                        return [3 /*break*/, 8];
-                    case 7:
-                        e_1 = _d.sent();
-                        console.error("[DataDome] Solve failed:", e_1);
-                        return [3 /*break*/, 8];
+                        return [3 /*break*/, 9];
                     case 8:
+                        e_2 = _d.sent();
+                        console.error("[DataDome] Solve failed:", e_2);
+                        return [3 /*break*/, 9];
+                    case 9:
                         if (!response.ok)
                             throw new Error("Status code ".concat(response.status));
                         contentType = response.headers.get("content-type");
@@ -182,13 +211,21 @@ var API = /** @class */ (function () {
                 }
             });
         }); };
+        /**
+         * Scrape client_id from SC website. Uses TLS session to avoid tainting IP.
+         */
         this.getClientIdWeb = function () { return __awaiter(_this, void 0, void 0, function () {
-            var response, urls, _i, urls_1, scriptURL, script, clientId;
+            var session, response, urls, _i, urls_1, scriptURL, script, clientId;
             var _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0: return [4 /*yield*/, fetch(webURL).then(function (r) { return r.text(); })];
+                    case 0: return [4 /*yield*/, (0, DataDome_1.getTlsSession)()];
                     case 1:
+                        session = _b.sent();
+                        return [4 /*yield*/, session.fetch(webURL, {
+                                headers: { "User-Agent": UA, "Accept": "text/html", "Accept-Language": "en-US,en;q=0.9" }
+                            }).then(function (r) { return r.text(); })];
+                    case 2:
                         response = _b.sent();
                         if (!response || typeof response !== "string")
                             throw new Error("Could not find client ID");
@@ -196,21 +233,23 @@ var API = /** @class */ (function () {
                         if (!urls)
                             throw new Error("Could not find script URLs");
                         _i = 0, urls_1 = urls;
-                        _b.label = 2;
-                    case 2:
-                        if (!(_i < urls_1.length)) return [3 /*break*/, 5];
-                        scriptURL = urls_1[_i];
-                        return [4 /*yield*/, fetch(scriptURL).then(function (r) { return r.text(); })];
+                        _b.label = 3;
                     case 3:
+                        if (!(_i < urls_1.length)) return [3 /*break*/, 6];
+                        scriptURL = urls_1[_i];
+                        return [4 /*yield*/, session.fetch(scriptURL, {
+                                headers: { "User-Agent": UA, "Accept": "*/*", "Referer": "https://soundcloud.com/" }
+                            }).then(function (r) { return r.text(); })];
+                    case 4:
                         script = _b.sent();
                         clientId = (_a = script.match(/[{,]client_id:"(\w+)"/)) === null || _a === void 0 ? void 0 : _a[1];
                         if (clientId)
                             return [2 /*return*/, clientId];
-                        _b.label = 4;
-                    case 4:
+                        _b.label = 5;
+                    case 5:
                         _i++;
-                        return [3 /*break*/, 2];
-                    case 5: throw new Error("Could not find client ID in script URLs");
+                        return [3 /*break*/, 3];
+                    case 6: throw new Error("Could not find client ID in script URLs");
                 }
             });
         }); };
