@@ -132,6 +132,7 @@ var API = /** @class */ (function () {
                         _c.label = 4;
                     case 4:
                         _c.trys.push([4, 7, , 8]);
+                        console.log("[DataDome] Challenge detected, solving...");
                         _a = this;
                         return [4 /*yield*/, (0, DataDome_1.solveDataDome)(initialCid)];
                     case 5:
@@ -143,10 +144,11 @@ var API = /** @class */ (function () {
                         return [4 /*yield*/, this.tlsFetch(fullUrl, retryOptions)];
                     case 6:
                         response = _c.sent();
+                        console.log("[DataDome] Solved, retry status:", response.status);
                         return [3 /*break*/, 8];
                     case 7:
                         e_1 = _c.sent();
-                        console.error("DataDome solve failed:", e_1);
+                        console.error("[DataDome] Solve failed:", e_1);
                         return [3 /*break*/, 8];
                     case 8:
                         if (!response.ok)

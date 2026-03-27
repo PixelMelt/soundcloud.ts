@@ -87,13 +87,15 @@ export class API {
             if (setCookie.includes("datadome=")) {
                 const initialCid = setCookie.match(/datadome=([^;]+)/)?.[1] || this.ddCookie
                 try {
+                    console.log("[DataDome] Challenge detected, solving...")
                     this.ddCookie = await solveDataDome(initialCid)
                     const retryHeaders = this.requestHeaders(method)
                     const retryOptions: RequestInit = { method, headers: retryHeaders, redirect: "follow" }
                     if (method === "POST" && params) retryOptions.body = JSON.stringify(params)
                     response = await this.tlsFetch(fullUrl, retryOptions)
+                    console.log("[DataDome] Solved, retry status:", response.status)
                 } catch (e) {
-                    console.error("DataDome solve failed:", e)
+                    console.error("[DataDome] Solve failed:", e)
                 }
             }
         }
